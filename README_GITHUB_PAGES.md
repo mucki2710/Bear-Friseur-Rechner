@@ -28,3 +28,8 @@ Diese Version ist als statische Web-App für GitHub Pages vorbereitet.
 
 Die Prüfungsaufgaben liegen in `task_templates.json` unter `exam_tasks`.
 Dort kannst du später beliebig weitere Aufgaben ergänzen.
+
+
+## Mobile/Android-Darstellung
+
+Die CSS-Datei ist für kleinere Android-Displays kompakter optimiert. Falls Elemente noch zu groß wirken, Browser-Zoom auf 100 % prüfen und die aktuelle `styles.css` neu deployen.
