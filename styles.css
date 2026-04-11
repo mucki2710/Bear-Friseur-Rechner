@@ -1,0 +1,242 @@
+:root {
+  color-scheme: light;
+  --bg: #f5f5f7;
+  --panel: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #d1d5db;
+  --accent: #111827;
+  --accent-2: #374151;
+  --soft: #f9fafb;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, #fafafa 0%, var(--bg) 100%);
+  color: var(--text);
+}
+
+.app-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.hero {
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+}
+
+.hero p,
+.section-text {
+  margin: 0;
+  color: var(--muted);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.section-header h2,
+.task-card h3,
+.output h2,
+.solution-box h4 {
+  margin: 0 0 6px;
+}
+
+.section-header.compact {
+  margin-bottom: 16px;
+}
+
+.toolbar,
+.actions,
+.task-toolbar,
+.task-actions,
+.task-card-header {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar,
+.task-toolbar {
+  margin-bottom: 18px;
+}
+
+.actions,
+.task-actions {
+  align-items: center;
+}
+
+.task-card-header {
+  align-items: start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.grow {
+  flex: 1 1 280px;
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field span {
+  font-weight: 600;
+}
+
+input,
+select,
+button {
+  font: inherit;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+}
+
+input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+button {
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--accent);
+  color: white;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  opacity: 0.96;
+}
+
+button.secondary {
+  background: var(--accent-2);
+}
+
+.task-card,
+.solution-box,
+.task-help,
+pre {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.task-card {
+  background: var(--soft);
+  padding: 16px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.task-description {
+  margin: 0 0 14px;
+  line-height: 1.6;
+}
+
+.task-help {
+  display: flex;
+  gap: 8px;
+  align-items: start;
+  background: #fff;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.solution-box {
+  background: #fff;
+  padding: 14px;
+  margin-top: 14px;
+}
+
+.hidden {
+  display: none;
+}
+
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+  background: #fbfbfb;
+  padding: 16px;
+  min-height: 180px;
+  overflow: auto;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .input-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar,
+  .actions,
+  .task-toolbar,
+  .task-actions,
+  .task-card-header {
+    align-items: stretch;
+  }
+
+  .toolbar button,
+  .actions button,
+  .task-toolbar button,
+  .task-actions button,
+  .task-card-header button {
+    width: 100%;
+  }
+}

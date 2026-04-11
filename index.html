@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Friseur-Rechner Berufstheorie II</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <h1>Friseur-Rechner Berufstheorie II</h1>
+      <p>Mischung • Verhältnis • Konzentration • Deckungsbeitrag • Wareneinsatzquote</p>
+    </header>
+
+    <section class="panel trainer-panel">
+      <div class="section-header">
+        <div>
+          <h2>Prüfungsaufgaben</h2>
+          <p class="section-text">Wähle eine Aufgabe, lies den Text und trage die Werte selbst in den Rechner ein. Die Musterlösung bleibt zunächst verborgen.</p>
+        </div>
+      </div>
+
+      <div class="task-toolbar">
+        <label class="field grow">
+          <span>Aufgabengebiet</span>
+          <select id="taskCategory"></select>
+        </label>
+
+        <label class="field grow">
+          <span>Aufgabe</span>
+          <select id="taskSelect"></select>
+        </label>
+      </div>
+
+      <article class="task-card">
+        <div class="task-card-header">
+          <div>
+            <p class="eyebrow" id="taskMode">Mischung</p>
+            <h3 id="taskTitle">Noch keine Aufgabe gewählt</h3>
+          </div>
+          <button id="loadTaskBtn" type="button">Werte in den Rechner übernehmen</button>
+        </div>
+
+        <p id="taskDescription" class="task-description">Wähle oben eine Aufgabe aus.</p>
+
+        <div class="task-help" id="taskPromptBox">
+          <strong>Arbeitsauftrag:</strong>
+          <span id="taskPrompt">Wähle eine Aufgabe aus, übernimm die Werte und rechne dann selbst.</span>
+        </div>
+
+        <div class="task-actions">
+          <button id="toggleSolutionBtn" type="button" class="secondary">Musterlösung anzeigen</button>
+        </div>
+
+        <div id="taskSolution" class="solution-box hidden">
+          <h4>Musterlösung</h4>
+          <pre id="taskSolutionContent">Noch keine Musterlösung geladen.</pre>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel controls">
+      <div class="section-header compact">
+        <div>
+          <h2>Rechner</h2>
+          <p class="section-text">Trage die Werte aus der Aufgabe ein und vergleiche anschließend deinen Rechenweg.</p>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <label class="field grow">
+          <span>Rechenart</span>
+          <select id="calcType"></select>
+        </label>
+        <button id="exampleBtn" type="button">Beispiel laden</button>
+        <button id="clearBtn" type="button" class="secondary">Leeren</button>
+      </div>
+
+      <div class="input-grid">
+        <label class="field">
+          <span id="label1">Starke Lösung (%)</span>
+          <input id="input1" type="number" inputmode="decimal" step="any" placeholder="z. B. 12" />
+        </label>
+
+        <label class="field">
+          <span id="label2">Schwache Lösung (%)</span>
+          <input id="input2" type="number" inputmode="decimal" step="any" placeholder="z. B. 4" />
+        </label>
+
+        <label class="field">
+          <span id="label3">Zielkonzentration (%)</span>
+          <input id="input3" type="number" inputmode="decimal" step="any" placeholder="z. B. 6" />
+        </label>
+
+        <label class="field">
+          <span id="label4">Gesamtmenge (ml)</span>
+          <input id="input4" type="number" inputmode="decimal" step="any" placeholder="z. B. 40" />
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="calcBtn" type="button" class="primary">Rechnen</button>
+      </div>
+    </section>
+
+    <section class="panel output">
+      <h2>Lösung</h2>
+      <pre id="output">Noch keine Berechnung.</pre>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
