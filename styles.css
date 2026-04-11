@@ -195,12 +195,21 @@ pre {
 }
 
 .task-help {
-  display: flex;
-  gap: 8px;
-  align-items: start;
+  display: block; /* statt flex */
   background: #fff;
-  padding: 10px 12px;
-  margin-bottom: 12px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.task-help strong {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 2px;
+}
+
+.task-help span {
+  font-size: 0.82rem;
 }
 
 .solution-box {
@@ -332,4 +341,16 @@ pre {
     padding: 12px;
     min-height: 140px;
   }
+  
+  .task-help {
+      padding: 6px 8px;
+    }
+
+    .task-help strong {
+      font-size: 0.75rem;
+    }
+
+    .task-help span {
+      font-size: 0.78rem;
+    }
 }
