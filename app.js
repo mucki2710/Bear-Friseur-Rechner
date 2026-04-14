@@ -393,7 +393,7 @@ function solveMixing(strong, weak, target, totalMl = null) {
     "2. Ziel minus schwache Lösung:",
     `   ${target} - ${weak} = ${diffWeak}`,
     "",
-    "3. Anteile zuordnen:",
+    "3. Anteile zuordnen KREUZEN: Anteil stark = Ziel minus SCWACH - Anteil schwach = STARK minus Ziel",
     `   Anteil stark = ${diffWeak}`,
     `   Anteil schwach = ${diffStrong}`,
     "",
