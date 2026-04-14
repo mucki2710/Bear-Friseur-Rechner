@@ -1,113 +1,378 @@
-const MODES = {
-  "Mischungsrechner": {
-    labels: ["Starke Lösung (%)", "Schwache Lösung (%)", "Zielkonzentration (%)", "Gesamtmenge (ml)"],
-    hints: ["z. B. 12", "z. B. 4", "z. B. 6", "z. B. 40"],
-    enabled: [true, true, true, true],
-  },
-  "Verhältnis": {
-    labels: ["Starke Lösung (%)", "Schwache Lösung (%)", "Zielkonzentration (%)", "Nicht benötigt"],
-    hints: ["z. B. 12", "z. B. 3", "z. B. 6", ""],
-    enabled: [true, true, true, false],
-  },
-  "Konzentration": {
-    labels: ["Menge Entwickler (ml)", "Konzentration (%)", "Wasser (ml)", "Farbcreme (ml)"],
-    hints: ["z. B. 40", "z. B. 12", "z. B. 20", "z. B. 60"],
-    enabled: [true, true, true, true],
-  },
-  "Deckungsbeitrag": {
-    labels: ["Umsatz (€)", "Variable Kosten (€)", "Nicht benötigt", "Nicht benötigt"],
-    hints: ["z. B. 20", "z. B. 6", "", ""],
-    enabled: [true, true, false, false],
-  },
-  "Wareneinsatzquote": {
-    labels: ["Wareneinsatz (€)", "Umsatz (€)", "Nicht benötigt", "Nicht benötigt"],
-    hints: ["z. B. 6", "z. B. 20", "", ""],
-    enabled: [true, true, false, false],
-  },
-};
+// =====================
+// DOM
+// =====================
+const calcType = document.getElementById("calcType");
+const output = document.getElementById("output");
 
-const TASK_CATEGORY_CONFIG = {
-  mixing: { label: "Mischung", mode: "Mischungsrechner" },
-  concentration: { label: "Konzentration", mode: "Konzentration" },
-};
+const taskCategory = document.getElementById("taskCategory");
+const taskSelect = document.getElementById("taskSelect");
+const taskMode = document.getElementById("taskMode");
+const taskTitle = document.getElementById("taskTitle");
+const taskDescription = document.getElementById("taskDescription");
+const taskPrompt = document.getElementById("taskPrompt");
 
-const els = {
-  calcType: document.getElementById("calcType"),
-  exampleBtn: document.getElementById("exampleBtn"),
-  clearBtn: document.getElementById("clearBtn"),
-  calcBtn: document.getElementById("calcBtn"),
-  output: document.getElementById("output"),
-  labels: [1, 2, 3, 4].map((n) => document.getElementById(`label${n}`)),
-  inputs: [1, 2, 3, 4].map((n) => document.getElementById(`input${n}`)),
-  taskCategory: document.getElementById("taskCategory"),
-  taskSelect: document.getElementById("taskSelect"),
-  taskMode: document.getElementById("taskMode"),
-  taskTitle: document.getElementById("taskTitle"),
-  taskDescription: document.getElementById("taskDescription"),
-  taskPrompt: document.getElementById("taskPrompt"),
-  loadTaskBtn: document.getElementById("loadTaskBtn"),
-  toggleSolutionBtn: document.getElementById("toggleSolutionBtn"),
-  taskSolution: document.getElementById("taskSolution"),
-  taskSolutionContent: document.getElementById("taskSolutionContent"),
-};
+const loadTaskBtn = document.getElementById("loadTaskBtn");
+const toggleSolutionBtn = document.getElementById("toggleSolutionBtn");
+const taskSolution = document.getElementById("taskSolution");
+const taskSolutionContent = document.getElementById("taskSolutionContent");
 
-let templates = {
-  mixing_examples: [],
-  business_examples: [],
-  concentration_examples: [],
-  exam_tasks: { mixing: [], concentration: [] },
-};
+const exampleBtn = document.getElementById("exampleBtn");
+const clearBtn = document.getElementById("clearBtn");
+const calcBtn = document.getElementById("calcBtn");
 
-for (const mode of Object.keys(MODES)) {
-  const option = document.createElement("option");
-  option.value = mode;
-  option.textContent = mode;
-  els.calcType.appendChild(option);
+const fields = Array.from({ length: 8 }, (_, i) => ({
+  wrapper: document.getElementById(`field${i + 1}`),
+  label: document.getElementById(`label${i + 1}`),
+  input: document.getElementById(`input${i + 1}`)
+}));
+
+// =====================
+// STATE
+// =====================
+let TASK_DATA = { exam_tasks: {} };
+
+// =====================
+// RECHENARTEN
+// =====================
+const calcTypes = [
+  "Mischungsrechner",
+  "Verhältnis",
+  "Konzentration",
+  "Deckungsbeitrag",
+  "Wareneinsatzquote",
+  "Warenrabatt",
+  "Preisberechnung",
+  "Bezugskalkulation",
+  "Verkaufskalkulation",
+  "Umweltschutz",
+  "Marketing Vormonat",
+  "Marketing Umsatz"
+];
+
+function initCalcTypes() {
+  calcType.innerHTML = "";
+  calcTypes.forEach((type) => {
+    const option = document.createElement("option");
+    option.value = type;
+    option.textContent = type;
+    calcType.appendChild(option);
+  });
 }
 
-for (const [key, config] of Object.entries(TASK_CATEGORY_CONFIG)) {
-  const option = document.createElement("option");
-  option.value = key;
-  option.textContent = config.label;
-  els.taskCategory.appendChild(option);
-}
-
-function parseNum(value, required = true) {
+// =====================
+// HILFSFUNKTIONEN
+// =====================
+function parseNum(value) {
   const normalized = String(value ?? "").trim().replace(",", ".");
   if (!normalized) {
-    if (required) throw new Error("Bitte alle benötigten Felder ausfüllen.");
-    return null;
+    throw new Error("Bitte alle benötigten Felder ausfüllen.");
   }
   const num = Number(normalized);
-  if (!Number.isFinite(num)) {
-    throw new Error("Bitte nur gültige Zahlen eingeben.");
+  if (Number.isNaN(num)) {
+    throw new Error("Ungültige Zahl eingegeben.");
   }
   return num;
 }
 
+function clearAllInputs() {
+  fields.forEach((field) => {
+    field.input.value = "";
+    field.input.disabled = false;
+    field.input.placeholder = "";
+  });
+}
+
+function hideAllFields() {
+  fields.forEach((field) => {
+    field.wrapper.classList.add("hidden");
+    field.label.textContent = "";
+  });
+}
+
+function showField(index, label, placeholder = "") {
+  const field = fields[index];
+  if (!field) return;
+  field.wrapper.classList.remove("hidden");
+  field.label.textContent = label;
+  field.input.placeholder = placeholder;
+  field.input.disabled = false;
+}
+
+function setOutputDefault() {
+  output.textContent = "Noch keine Berechnung.";
+}
+
+function formatCategoryName(key) {
+  const map = {
+    mixing: "Mischung",
+    concentration: "Konzentration",
+    deckungsbeitrag: "Deckungsbeitrag",
+    wareneinsatzquote: "Wareneinsatzquote",
+    warenrabatt: "Warenrabatt",
+    preisberechnung: "Preisberechnung",
+    bezugskalkulation: "Bezugskalkulation",
+    verkaufskalkulation: "Verkaufskalkulation",
+    umweltschutz: "Umweltschutz",
+    marketing_vormonat: "Marketing Vormonat",
+    marketing_umsatz: "Marketing Umsatz"
+  };
+  return map[key] || key;
+}
+
+function getCurrentTask() {
+  const category = taskCategory.value;
+  const index = Number(taskSelect.value);
+
+  if (!TASK_DATA.exam_tasks?.[category]) return null;
+  if (Number.isNaN(index)) return null;
+
+  return TASK_DATA.exam_tasks[category][index] || null;
+}
+
 function gcd(a, b) {
-  let x = Math.abs(a);
-  let y = Math.abs(b);
-  while (y) {
-    [x, y] = [y, x % y];
-  }
-  return x || 1;
+  return b ? gcd(b, a % b) : a;
 }
 
 function normalizeRatio(a, b) {
   const scale = 10;
   const aa = Math.round(a * scale);
   const bb = Math.round(b * scale);
-  const divisor = aa && bb ? gcd(aa, bb) : Math.max(aa, bb, 1);
-  return [aa / divisor, bb / divisor];
+  const g = aa && bb ? gcd(aa, bb) : Math.max(aa, bb, 1);
+  return [aa / g, bb / g];
 }
 
-function formatTaskAsPrompt(task) {
-  return task.prompt || "Übernimm die Werte in den Rechner, rechne zuerst selbst und blende die Musterlösung erst danach ein.";
+// =====================
+// RECHNER-UI
+// =====================
+function applyMode(mode) {
+  calcType.value = mode;
+  clearAllInputs();
+  hideAllFields();
+
+  if (mode === "Mischungsrechner") {
+    showField(0, "Starke Lösung (%)", "z. B. 12");
+    showField(1, "Schwache Lösung (%)", "z. B. 3");
+    showField(2, "Zielkonzentration (%)", "z. B. 6");
+    showField(3, "Gesamtmenge (ml)", "z. B. 40");
+  } else if (mode === "Verhältnis") {
+    showField(0, "Starke Lösung (%)", "z. B. 12");
+    showField(1, "Schwache Lösung (%)", "z. B. 2");
+    showField(2, "Zielkonzentration (%)", "z. B. 4");
+  } else if (mode === "Konzentration") {
+    showField(0, "Menge Entwickler (ml)", "z. B. 40");
+    showField(1, "Konzentration (%)", "z. B. 12");
+    showField(2, "Wasser (ml)", "z. B. 20");
+    showField(3, "Farbcreme (ml)", "z. B. 60");
+  } else if (mode === "Deckungsbeitrag") {
+    showField(0, "Umsatz (€)", "z. B. 20");
+    showField(1, "Variable Kosten (€)", "z. B. 6");
+  } else if (mode === "Wareneinsatzquote") {
+    showField(0, "Wareneinsatz (€)", "z. B. 6");
+    showField(1, "Umsatz (€)", "z. B. 20");
+  } else if (mode === "Warenrabatt") {
+    showField(0, "Preis Artikel 1 (€)", "z. B. 110");
+    showField(1, "Rabatt Artikel 1 (%)", "z. B. 18");
+    showField(2, "Preis Artikel 2 (€)", "z. B. 9.8");
+    showField(3, "Rabatt Artikel 2 (%)", "z. B. 7");
+  } else if (mode === "Preisberechnung") {
+    showField(0, "Stückpreis (€)", "z. B. 7.5");
+    showField(1, "Menge 1", "z. B. 50");
+    showField(2, "Rabatt 1 (%)", "z. B. 3");
+    showField(3, "Menge 2", "z. B. 100");
+    showField(4, "Rabatt 2 (%)", "z. B. 10");
+  } else if (mode === "Bezugskalkulation") {
+    showField(0, "Stückpreis (€)", "z. B. 2.1");
+    showField(1, "Menge", "z. B. 50");
+    showField(2, "Rabatt (%)", "z. B. 3");
+    showField(3, "Skonto (%)", "z. B. 2");
+    showField(4, "Bezugskosten (€)", "z. B. 7.5");
+  } else if (mode === "Verkaufskalkulation") {
+    showField(0, "Listenpreis (€)", "z. B. 5.8");
+    showField(1, "Rabatt (%)", "z. B. 8.5");
+    showField(2, "Skonto (%)", "z. B. 3");
+    showField(3, "Bezugskosten (€)", "z. B. 4.7");
+    showField(4, "Handlungskosten (%)", "z. B. 30");
+    showField(5, "Gewinn (%)", "z. B. 35");
+    showField(6, "MwSt (%)", "z. B. 19");
+  } else if (mode === "Umweltschutz") {
+    showField(0, "Rest pro Tube (ml)", "z. B. 8");
+    showField(1, "Tuben pro Tag", "z. B. 5");
+    showField(2, "Arbeitstage pro Monat", "z. B. 20");
+  } else if (mode === "Marketing Vormonat") {
+    showField(0, "Aktuelle Kunden", "z. B. 876");
+    showField(1, "Steigerung (%)", "z. B. 20");
+  } else if (mode === "Marketing Umsatz") {
+    showField(0, "Kunden", "z. B. 876");
+    showField(1, "Umsatz pro Kunde (€)", "z. B. 29.5");
+  }
+
+  setOutputDefault();
 }
 
-function solveMixing(strong, weak, target, totalMl) {
-  if (weak > strong) throw new Error("Die schwache Lösung darf nicht größer als die starke sein.");
+function modeFromTask(task) {
+  if (!task) return "Mischungsrechner";
+
+  const map = {
+    mixing: task.total_ml != null ? "Mischungsrechner" : "Verhältnis",
+    ratio: "Verhältnis",
+    concentration: "Konzentration",
+    deckungsbeitrag: "Deckungsbeitrag",
+    wareneinsatzquote: "Wareneinsatzquote",
+    warenrabatt: "Warenrabatt",
+    preisberechnung: "Preisberechnung",
+    bezugskalkulation: "Bezugskalkulation",
+    verkaufskalkulation: "Verkaufskalkulation",
+    umweltschutz: "Umweltschutz",
+    marketing_vormonat: "Marketing Vormonat",
+    marketing_umsatz: "Marketing Umsatz"
+  };
+
+  return map[task.type] || "Mischungsrechner";
+}
+
+function loadTaskIntoCalculator(task) {
+  if (!task) return;
+
+  applyMode(modeFromTask(task));
+
+  if (task.type === "mixing" || task.type === "ratio") {
+    fields[0].input.value = task.high ?? "";
+    fields[1].input.value = task.low ?? "";
+    fields[2].input.value = task.target ?? "";
+    fields[3].input.value = task.total_ml ?? "";
+  } else if (task.type === "concentration") {
+    fields[0].input.value = task.strong_ml ?? "";
+    fields[1].input.value = task.strong_pct ?? "";
+    fields[2].input.value = task.water_ml ?? "";
+    fields[3].input.value = task.extra_ml ?? "";
+  } else if (task.type === "deckungsbeitrag") {
+    fields[0].input.value = task.umsatz ?? "";
+    fields[1].input.value = task.variable_kosten ?? "";
+  } else if (task.type === "wareneinsatzquote") {
+    fields[0].input.value = task.wareneinsatz ?? "";
+    fields[1].input.value = task.umsatz ?? "";
+  } else if (task.type === "warenrabatt") {
+    fields[0].input.value = task.preis1 ?? "";
+    fields[1].input.value = task.rabatt1 ?? "";
+    fields[2].input.value = task.preis2 ?? "";
+    fields[3].input.value = task.rabatt2 ?? "";
+  } else if (task.type === "preisberechnung") {
+    fields[0].input.value = task.stueckpreis ?? "";
+    fields[1].input.value = task.menge1 ?? "";
+    fields[2].input.value = task.rabatt1 ?? "";
+    fields[3].input.value = task.menge2 ?? "";
+    fields[4].input.value = task.rabatt2 ?? "";
+  } else if (task.type === "bezugskalkulation") {
+    fields[0].input.value = task.stueckpreis ?? "";
+    fields[1].input.value = task.menge ?? "";
+    fields[2].input.value = task.rabatt ?? "";
+    fields[3].input.value = task.skonto ?? "";
+    fields[4].input.value = task.bezugskosten ?? "";
+  } else if (task.type === "verkaufskalkulation") {
+    fields[0].input.value = task.listenpreis ?? "";
+    fields[1].input.value = task.rabatt ?? "";
+    fields[2].input.value = task.skonto ?? "";
+    fields[3].input.value = task.bezugskosten ?? "";
+    fields[4].input.value = task.handlungskosten ?? "";
+    fields[5].input.value = task.gewinn ?? "";
+    fields[6].input.value = task.mwst ?? "";
+  } else if (task.type === "umweltschutz") {
+    fields[0].input.value = task.rest_ml ?? "";
+    fields[1].input.value = task.tuben_pro_tag ?? "";
+    fields[2].input.value = task.arbeitstage_pro_monat ?? "";
+  } else if (task.type === "marketing_vormonat") {
+    fields[0].input.value = task.aktuelle_kunden ?? "";
+    fields[1].input.value = task.steigerung ?? "";
+  } else if (task.type === "marketing_umsatz") {
+    fields[0].input.value = task.kunden ?? "";
+    fields[1].input.value = task.umsatz_pro_kunde ?? "";
+  }
+}
+
+// =====================
+// AUFGABEN LADEN
+// =====================
+async function initTasks() {
+  try {
+    const response = await fetch("task_templates.json");
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    TASK_DATA = data;
+
+    const categories = Object.keys(data.exam_tasks || {});
+    taskCategory.innerHTML = "";
+
+    categories.forEach((key) => {
+      const option = document.createElement("option");
+      option.value = key;
+      option.textContent = formatCategoryName(key);
+      taskCategory.appendChild(option);
+    });
+
+    if (categories.length > 0) {
+      updateTaskList();
+    }
+  } catch (err) {
+    console.error("Fehler beim Laden der Aufgaben:", err);
+    taskMode.textContent = "Fehler";
+    taskTitle.textContent = "Aufgaben konnten nicht geladen werden";
+    taskDescription.textContent = String(err.message || err);
+    taskPrompt.textContent = "Prüfe Pfad und JSON-Datei.";
+  }
+}
+
+function updateTaskList() {
+  const category = taskCategory.value;
+  const tasks = TASK_DATA.exam_tasks?.[category] || [];
+
+  taskSelect.innerHTML = "";
+
+  tasks.forEach((task, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = task.title;
+    taskSelect.appendChild(option);
+  });
+
+  showTask();
+}
+
+function showTask() {
+  const task = getCurrentTask();
+
+  if (!task) {
+    taskMode.textContent = "Keine Aufgabe";
+    taskTitle.textContent = "Noch keine Aufgabe gewählt";
+    taskDescription.textContent = "Wähle oben eine Aufgabe aus.";
+    taskPrompt.textContent = "Wähle eine Aufgabe aus, übernimm die Werte und rechne dann selbst.";
+    taskSolution.classList.add("hidden");
+    toggleSolutionBtn.textContent = "Musterlösung anzeigen";
+    taskSolutionContent.textContent = "Noch keine Musterlösung geladen.";
+    return;
+  }
+
+  taskMode.textContent = formatCategoryName(taskCategory.value);
+  taskTitle.textContent = task.title || "Ohne Titel";
+  taskDescription.textContent = task.description || "";
+  taskPrompt.textContent = task.prompt || "";
+
+  loadTaskIntoCalculator(task);
+
+  taskSolution.classList.add("hidden");
+  toggleSolutionBtn.textContent = "Musterlösung anzeigen";
+  taskSolutionContent.textContent = "Noch keine Musterlösung geladen.";
+}
+
+// =====================
+// RECHENLOGIK
+// =====================
+function solveMixing(strong, weak, target, totalMl = null) {
+  if (weak > strong) {
+    throw new Error("Die schwache Lösung darf nicht größer als die starke sein.");
+  }
   if (!(weak <= target && target <= strong)) {
     throw new Error("Die Zielkonzentration muss zwischen starker und schwacher Lösung liegen.");
   }
@@ -129,349 +394,595 @@ function solveMixing(strong, weak, target, totalMl) {
     `   ${target} - ${weak} = ${diffWeak}`,
     "",
     "3. Anteile zuordnen:",
-    `   Anteil stark (Ziel minus SCHWACH) = ${diffWeak}`,
-    `   Anteil schwach (STARK minus Ziel) = ${diffStrong}`,
+    `   Anteil stark = ${diffWeak}`,
+    `   Anteil schwach = ${diffStrong}`,
     "",
     "4. Verhältnis bilden:",
-    `   ${diffWeak} : ${diffStrong} = ${ratioStrong} : ${ratioWeak}`,
+    `   ${diffWeak} : ${diffStrong} = ${ratioStrong} : ${ratioWeak}`
   ];
 
   if (totalMl == null) {
-    steps.push("", "5. Keine Gesamtmenge angegeben.", "   Deshalb wird nur das Verhältnis berechnet.");
     return {
-      result: `Verhältnis: ${ratioStrong} : ${ratioWeak}`,
-      steps: steps.join("\n"),
+      fullOutput: [
+        "ERGEBNIS:",
+        `Verhältnis: ${ratioStrong} : ${ratioWeak}`,
+        "",
+        "--------------------------------",
+        "",
+        "RECHENWEG:",
+        ...steps,
+        "",
+        "5. Keine Gesamtmenge angegeben.",
+        "   Deshalb wird nur das Verhältnis berechnet."
+      ].join("\n")
     };
   }
 
   const parts = ratioStrong + ratioWeak;
   const onePart = totalMl / parts;
-  const strongMl = Math.round(onePart * ratioStrong * 10) / 10;
-  const weakMl = Math.round(onePart * ratioWeak * 10) / 10;
-
-  steps.push(
-    "",
-    "5. Gesamtteile berechnen:",
-    `   ${ratioStrong} + ${ratioWeak} = ${parts} Teile`,
-    "",
-    "6. Einen Teil berechnen:",
-    `   ${totalMl} ml ÷ ${parts} = ${onePart.toFixed(2)} ml`,
-    "",
-    "7. Mengen berechnen:",
-    `   Starke Lösung: ${ratioStrong} × ${onePart.toFixed(2)} = ${strongMl.toFixed(1)} ml`,
-    `   Schwache Lösung: ${ratioWeak} × ${onePart.toFixed(2)} = ${weakMl.toFixed(1)} ml`,
-    "",
-    "8. Kontrolle:",
-    `   ${strongMl.toFixed(1)} ml + ${weakMl.toFixed(1)} ml = ${(strongMl + weakMl).toFixed(1)} ml`
-  );
+  const strongMl = Number((onePart * ratioStrong).toFixed(1));
+  const weakMl = Number((onePart * ratioWeak).toFixed(1));
 
   return {
-    result:
-      `Starke Lösung (${strong}%): ${strongMl.toFixed(1)} ml\n` +
-      `Schwache Lösung (${weak}%): ${weakMl.toFixed(1)} ml\n` +
-      `Verhältnis: ${ratioStrong} : ${ratioWeak}\n` +
+    fullOutput: [
+      "ERGEBNIS:",
+      `Starke Lösung (${strong}%): ${strongMl.toFixed(1)} ml`,
+      `Schwache Lösung (${weak}%): ${weakMl.toFixed(1)} ml`,
+      `Verhältnis: ${ratioStrong} : ${ratioWeak}`,
       `Gesamtmenge: ${totalMl} ml`,
-    steps: steps.join("\n"),
+      "",
+      "--------------------------------",
+      "",
+      "RECHENWEG:",
+      ...steps,
+      "",
+      "5. Gesamtteile berechnen:",
+      `   ${ratioStrong} + ${ratioWeak} = ${parts} Teile`,
+      "",
+      "6. Einen Teil berechnen:",
+      `   ${totalMl} ml ÷ ${parts} = ${onePart.toFixed(2)} ml`,
+      "",
+      "7. Mengen berechnen:",
+      `   Starke Lösung: ${ratioStrong} × ${onePart.toFixed(2)} = ${strongMl.toFixed(1)} ml`,
+      `   Schwache Lösung: ${ratioWeak} × ${onePart.toFixed(2)} = ${weakMl.toFixed(1)} ml`,
+      "",
+      "8. Kontrolle:",
+      `   ${strongMl.toFixed(1)} ml + ${weakMl.toFixed(1)} ml = ${(strongMl + weakMl).toFixed(1)} ml`
+    ].join("\n")
   };
 }
 
-function solveFinalConcentration(strongMl, strongPct, waterMl, extraMl) {
-  const active = (strongMl * strongPct) / 100;
+function solveConcentration(strongMl, strongPct, waterMl, extraMl) {
+  const active = strongMl * strongPct / 100;
   const total = strongMl + waterMl + extraMl;
-  const resultPct = (active / total) * 100;
+  const resultPct = active / total * 100;
 
   return {
-    result: `Endkonzentration: ${resultPct.toFixed(2)} %`,
-    steps: [
+    fullOutput: [
+      "ERGEBNIS:",
+      `Endkonzentration: ${resultPct.toFixed(2)} %`,
+      "",
+      "--------------------------------",
+      "",
+      "RECHENWEG:",
       "Gegeben:",
       `   Entwickler: ${strongMl} ml mit ${strongPct} %`,
       `   Wasser: ${waterMl} ml (0 %)`,
       `   Farbcreme: ${extraMl} ml (0 %)`,
       "",
       "1. Wirkstoffmenge im Entwickler berechnen:",
-      `   ${strongPct}% von ${strongMl} ml`,
-      `   = ${strongMl} × ${strongPct} / 100`,
-      `   = ${active.toFixed(2)} ml Wirkstoff`,
+      `   ${strongMl} × ${strongPct} / 100 = ${active.toFixed(2)} ml`,
       "",
       "2. Gesamtmenge berechnen:",
-      `   ${strongMl} + ${waterMl} + ${extraMl}`,
-      `   = ${total} ml`,
+      `   ${strongMl} + ${waterMl} + ${extraMl} = ${total} ml`,
       "",
       "3. Endkonzentration berechnen:",
-      `   ${active.toFixed(2)} / ${total} × 100`,
-      `   = ${resultPct.toFixed(2)} %`,
-      "",
-      "4. Ergebnis:",
-      `   Die Mischung hat eine Konzentration von ${resultPct.toFixed(2)} %`,
-    ].join("\n"),
+      `   ${active.toFixed(2)} / ${total} × 100 = ${resultPct.toFixed(2)} %`
+    ].join("\n")
   };
 }
 
 function solveDeckungsbeitrag(umsatz, variableKosten) {
   const db = umsatz - variableKosten;
   return {
-    result: `Deckungsbeitrag: ${db} €`,
-    steps: [
+    fullOutput: [
+      "ERGEBNIS:",
+      `Deckungsbeitrag: ${db.toFixed(2)} €`,
+      "",
+      "--------------------------------",
+      "",
+      "RECHENWEG:",
       "1. Formel:",
       "   Deckungsbeitrag = Umsatz - variable Kosten",
       "",
       "2. Werte einsetzen:",
-      `   ${umsatz} - ${variableKosten}`,
-      "",
-      "3. Ergebnis:",
-      `   Deckungsbeitrag = ${db} €`,
-    ].join("\n"),
+      `   ${umsatz} - ${variableKosten} = ${db.toFixed(2)}`
+    ].join("\n")
   };
 }
 
 function solveWareneinsatzquote(wareneinsatz, umsatz) {
-  if (umsatz === 0) throw new Error("Der Umsatz darf nicht 0 sein.");
-  const quote = (wareneinsatz / umsatz) * 100;
+  if (umsatz === 0) {
+    throw new Error("Der Umsatz darf nicht 0 sein.");
+  }
+
+  const quote = wareneinsatz / umsatz * 100;
   return {
-    result: `Wareneinsatzquote: ${quote.toFixed(2)} %`,
-    steps: [
+    fullOutput: [
+      "ERGEBNIS:",
+      `Wareneinsatzquote: ${quote.toFixed(2)} %`,
+      "",
+      "--------------------------------",
+      "",
+      "RECHENWEG:",
       "1. Formel:",
       "   Wareneinsatzquote = Wareneinsatz / Umsatz × 100",
       "",
       "2. Werte einsetzen:",
-      `   ${wareneinsatz} / ${umsatz} × 100`,
-      "",
-      "3. Ergebnis:",
-      `   Wareneinsatzquote = ${quote.toFixed(2)} %`,
-    ].join("\n"),
+      `   ${wareneinsatz} / ${umsatz} × 100 = ${quote.toFixed(2)} %`
+    ].join("\n")
   };
 }
 
-function updateMode(mode) {
-  const config = MODES[mode];
-  config.labels.forEach((text, i) => {
-    els.labels[i].textContent = text;
-    els.inputs[i].placeholder = config.hints[i];
-    els.inputs[i].disabled = !config.enabled[i];
-    if (!config.enabled[i]) els.inputs[i].value = "";
-  });
+function solveWarenrabatt(preis1, rabatt1, preis2, rabatt2) {
+  const rabattBetrag1 = preis1 * rabatt1 / 100;
+  const rabattBetrag2 = preis2 * rabatt2 / 100;
+  const zahlbetrag1 = preis1 - rabattBetrag1;
+  const zahlbetrag2 = preis2 - rabattBetrag2;
+  const gesamt = zahlbetrag1 + zahlbetrag2;
+
+  return {
+    fullOutput: [
+      "ERGEBNIS:",
+      `Zahlbetrag Artikel 1: ${zahlbetrag1.toFixed(2)} €`,
+      `Zahlbetrag Artikel 2: ${zahlbetrag2.toFixed(2)} €`,
+      `Gesamtbetrag: ${gesamt.toFixed(2)} €`,
+      "",
+      "--------------------------------",
+      "",
+      "RECHENWEG:",
+      "1. Rabatt für Artikel 1 berechnen:",
+      `   ${preis1} × ${rabatt1} / 100 = ${rabattBetrag1.toFixed(2)} €`,
+      "",
+      "2. Zahlbetrag Artikel 1:",
+      `   ${preis1} - ${rabattBetrag1.toFixed(2)} = ${zahlbetrag1.toFixed(2)} €`,
+      "",
+      "3. Rabatt für Artikel 2 berechnen:",
+      `   ${preis2} × ${rabatt2} / 100 = ${rabattBetrag2.toFixed(2)} €`,
+      "",
+      "4. Zahlbetrag Artikel 2:",
+      `   ${preis2} - ${rabattBetrag2.toFixed(2)} = ${zahlbetrag2.toFixed(2)} €`,
+      "",
+      "5. Gesamtbetrag:",
+      `   ${zahlbetrag1.toFixed(2)} + ${zahlbetrag2.toFixed(2)} = ${gesamt.toFixed(2)} €`
+    ].join("\n")
+  };
 }
 
-function clearInputs() {
-  els.inputs.forEach((input) => {
-    input.value = "";
-  });
-  els.output.textContent = "Noch keine Berechnung.";
+function solvePreisberechnung(stueckpreis, menge1, rabatt1, menge2, rabatt2) {
+  const listenpreis1 = stueckpreis * menge1;
+  const rabattBetrag1 = listenpreis1 * rabatt1 / 100;
+  const endpreis1 = listenpreis1 - rabattBetrag1;
+
+  const listenpreis2 = stueckpreis * menge2;
+  const rabattBetrag2 = listenpreis2 * rabatt2 / 100;
+  const endpreis2 = listenpreis2 - rabattBetrag2;
+
+  return {
+    fullOutput: [
+      "ERGEBNIS:",
+      `Fall 1 Gesamtpreis: ${endpreis1.toFixed(2)} €`,
+      `Fall 2 Gesamtpreis: ${endpreis2.toFixed(2)} €`,
+      "",
+      "--------------------------------",
+      "",
+      "RECHENWEG:",
+      "Fall 1:",
+      `1. Listenpreis: ${stueckpreis} × ${menge1} = ${listenpreis1.toFixed(2)} €`,
+      `2. Rabatt: ${listenpreis1.toFixed(2)} × ${rabatt1} / 100 = ${rabattBetrag1.toFixed(2)} €`,
+      `3. Endpreis: ${listenpreis1.toFixed(2)} - ${rabattBetrag1.toFixed(2)} = ${endpreis1.toFixed(2)} €`,
+      "",
+      "Fall 2:",
+      `1. Listenpreis: ${stueckpreis} × ${menge2} = ${listenpreis2.toFixed(2)} €`,
+      `2. Rabatt: ${listenpreis2.toFixed(2)} × ${rabatt2} / 100 = ${rabattBetrag2.toFixed(2)} €`,
+      `3. Endpreis: ${listenpreis2.toFixed(2)} - ${rabattBetrag2.toFixed(2)} = ${endpreis2.toFixed(2)} €`
+    ].join("\n")
+  };
 }
 
-function getTaskGroups() {
-  return templates.exam_tasks || { mixing: [], concentration: [] };
+function solveBezugskalkulation(stueckpreis, menge, rabatt, skonto, bezugskosten) {
+  const listenpreis = stueckpreis * menge;
+  const zieleinkaufspreis = listenpreis * (1 - rabatt / 100);
+  const bareinkaufspreis = zieleinkaufspreis * (1 - skonto / 100);
+  const bezugspreis = bareinkaufspreis + bezugskosten;
+  const jeEinheit = bezugspreis / menge;
+
+  return {
+    fullOutput: [
+      "ERGEBNIS:",
+      `Gesamtbezugspreis: ${bezugspreis.toFixed(2)} €`,
+      `Bezugspreis je Einheit: ${jeEinheit.toFixed(2)} €`,
+      "",
+      "--------------------------------",
+      "",
+      "RECHENWEG:",
+      `1. Listenpreis: ${stueckpreis} × ${menge} = ${listenpreis.toFixed(2)} €`,
+      `2. Zieleinkaufspreis: ${listenpreis.toFixed(2)} × (1 - ${rabatt}/100) = ${zieleinkaufspreis.toFixed(2)} €`,
+      `3. Bareinkaufspreis: ${zieleinkaufspreis.toFixed(2)} × (1 - ${skonto}/100) = ${bareinkaufspreis.toFixed(2)} €`,
+      `4. Bezugspreis: ${bareinkaufspreis.toFixed(2)} + ${bezugskosten} = ${bezugspreis.toFixed(2)} €`,
+      `5. Bezugspreis je Einheit: ${bezugspreis.toFixed(2)} / ${menge} = ${jeEinheit.toFixed(2)} €`
+    ].join("\n")
+  };
 }
 
-function getCurrentTaskList() {
-  const category = els.taskCategory.value || "mixing";
-  return getTaskGroups()[category] || [];
+function solveVerkaufskalkulation(listenpreis, rabatt, skonto, bezugskosten, handlungskosten, gewinn, mwst) {
+  const zieleinkauf = listenpreis * (1 - rabatt / 100);
+  const bareinkauf = zieleinkauf * (1 - skonto / 100);
+  const einstandspreis = bareinkauf + bezugskosten;
+  const selbstkosten = einstandspreis * (1 + handlungskosten / 100);
+  const barverkaufspreis = selbstkosten * (1 + gewinn / 100);
+  const bruttoverkaufspreis = barverkaufspreis * (1 + mwst / 100);
+
+  return {
+    fullOutput: [
+      "ERGEBNIS:",
+      `Bruttoverkaufspreis: ${bruttoverkaufspreis.toFixed(2)} €`,
+      "",
+      "--------------------------------",
+      "",
+      "RECHENWEG:",
+      `1. Zieleinkaufspreis: ${listenpreis} × (1 - ${rabatt}/100) = ${zieleinkauf.toFixed(2)} €`,
+      `2. Bareinkaufspreis: ${zieleinkauf.toFixed(2)} × (1 - ${skonto}/100) = ${bareinkauf.toFixed(2)} €`,
+      `3. Einstandspreis: ${bareinkauf.toFixed(2)} + ${bezugskosten} = ${einstandspreis.toFixed(2)} €`,
+      `4. Selbstkosten: ${einstandspreis.toFixed(2)} × (1 + ${handlungskosten}/100) = ${selbstkosten.toFixed(2)} €`,
+      `5. Barverkaufspreis: ${selbstkosten.toFixed(2)} × (1 + ${gewinn}/100) = ${barverkaufspreis.toFixed(2)} €`,
+      `6. Bruttoverkaufspreis: ${barverkaufspreis.toFixed(2)} × (1 + ${mwst}/100) = ${bruttoverkaufspreis.toFixed(2)} €`
+    ].join("\n")
+  };
 }
 
-function getSelectedTask() {
-  const taskList = getCurrentTaskList();
-  const index = Number(els.taskSelect.value || 0);
-  return taskList[index] || null;
+function solveUmweltschutz(restMl, tubenProTag, arbeitstageProMonat) {
+  const verlustProTag = restMl * tubenProTag;
+  const verlustProMonat = verlustProTag * arbeitstageProMonat;
+  const verlustProJahr = verlustProMonat * 12;
+
+  return {
+    fullOutput: [
+      "ERGEBNIS:",
+      `Farbverlust pro Tag: ${verlustProTag.toFixed(2)} ml`,
+      `Farbverlust pro Monat: ${verlustProMonat.toFixed(2)} ml`,
+      `Farbverlust pro Jahr: ${verlustProJahr.toFixed(2)} ml`,
+      "",
+      "--------------------------------",
+      "",
+      "RECHENWEG:",
+      `1. Verlust pro Tag: ${restMl} × ${tubenProTag} = ${verlustProTag.toFixed(2)} ml`,
+      `2. Verlust pro Monat: ${verlustProTag.toFixed(2)} × ${arbeitstageProMonat} = ${verlustProMonat.toFixed(2)} ml`,
+      `3. Verlust pro Jahr: ${verlustProMonat.toFixed(2)} × 12 = ${verlustProJahr.toFixed(2)} ml`
+    ].join("\n")
+  };
 }
 
-function renderTaskSelect() {
-  const category = els.taskCategory.value || "mixing";
-  const taskList = getTaskGroups()[category] || [];
-  els.taskSelect.innerHTML = "";
+function solveMarketingVormonat(aktuelleKunden, steigerung) {
+  const vormonat = aktuelleKunden / (1 + steigerung / 100);
 
-  taskList.forEach((task, index) => {
-    const option = document.createElement("option");
-    option.value = String(index);
-    option.textContent = task.title;
-    els.taskSelect.appendChild(option);
-  });
+  return {
+    fullOutput: [
+      "ERGEBNIS:",
+      `Kundenzahl im Vormonat: ${vormonat.toFixed(0)}`,
+      "",
+      "--------------------------------",
+      "",
+      "RECHENWEG:",
+      `1. Formel: Vormonat = aktuelle Kunden / (1 + Steigerung/100)`,
+      `2. Einsetzen: ${aktuelleKunden} / (1 + ${steigerung}/100) = ${vormonat.toFixed(2)}`,
+      `3. Gerundet: ${vormonat.toFixed(0)}`
+    ].join("\n")
+  };
+}
 
-  if (!taskList.length) {
-    const option = document.createElement("option");
-    option.value = "0";
-    option.textContent = "Keine Aufgaben vorhanden";
-    els.taskSelect.appendChild(option);
+function solveMarketingUmsatz(kunden, umsatzProKunde) {
+  const gesamtumsatz = kunden * umsatzProKunde;
+
+  return {
+    fullOutput: [
+      "ERGEBNIS:",
+      `Gesamtumsatz: ${gesamtumsatz.toFixed(2)} €`,
+      "",
+      "--------------------------------",
+      "",
+      "RECHENWEG:",
+      `1. Formel: Gesamtumsatz = Kunden × Umsatz pro Kunde`,
+      `2. Einsetzen: ${kunden} × ${umsatzProKunde} = ${gesamtumsatz.toFixed(2)} €`
+    ].join("\n")
+  };
+}
+
+// =====================
+// BERECHNEN
+// =====================
+function calculate() {
+  try {
+    const mode = calcType.value;
+
+    if (mode === "Mischungsrechner") {
+      output.textContent = solveMixing(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value),
+        parseNum(fields[2].input.value),
+        parseNum(fields[3].input.value)
+      ).fullOutput;
+    } else if (mode === "Verhältnis") {
+      output.textContent = solveMixing(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value),
+        parseNum(fields[2].input.value),
+        null
+      ).fullOutput;
+    } else if (mode === "Konzentration") {
+      output.textContent = solveConcentration(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value),
+        parseNum(fields[2].input.value),
+        parseNum(fields[3].input.value)
+      ).fullOutput;
+    } else if (mode === "Deckungsbeitrag") {
+      output.textContent = solveDeckungsbeitrag(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value)
+      ).fullOutput;
+    } else if (mode === "Wareneinsatzquote") {
+      output.textContent = solveWareneinsatzquote(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value)
+      ).fullOutput;
+    } else if (mode === "Warenrabatt") {
+      output.textContent = solveWarenrabatt(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value),
+        parseNum(fields[2].input.value),
+        parseNum(fields[3].input.value)
+      ).fullOutput;
+    } else if (mode === "Preisberechnung") {
+      output.textContent = solvePreisberechnung(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value),
+        parseNum(fields[2].input.value),
+        parseNum(fields[3].input.value),
+        parseNum(fields[4].input.value)
+      ).fullOutput;
+    } else if (mode === "Bezugskalkulation") {
+      output.textContent = solveBezugskalkulation(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value),
+        parseNum(fields[2].input.value),
+        parseNum(fields[3].input.value),
+        parseNum(fields[4].input.value)
+      ).fullOutput;
+    } else if (mode === "Verkaufskalkulation") {
+      output.textContent = solveVerkaufskalkulation(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value),
+        parseNum(fields[2].input.value),
+        parseNum(fields[3].input.value),
+        parseNum(fields[4].input.value),
+        parseNum(fields[5].input.value),
+        parseNum(fields[6].input.value)
+      ).fullOutput;
+    } else if (mode === "Umweltschutz") {
+      output.textContent = solveUmweltschutz(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value),
+        parseNum(fields[2].input.value)
+      ).fullOutput;
+    } else if (mode === "Marketing Vormonat") {
+      output.textContent = solveMarketingVormonat(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value)
+      ).fullOutput;
+    } else if (mode === "Marketing Umsatz") {
+      output.textContent = solveMarketingUmsatz(
+        parseNum(fields[0].input.value),
+        parseNum(fields[1].input.value)
+      ).fullOutput;
+    }
+  } catch (err) {
+    output.textContent = `FEHLER:\n${err.message}`;
   }
-
-  renderTaskDetails();
 }
 
-function renderTaskDetails() {
-  const category = els.taskCategory.value || "mixing";
-  const task = getSelectedTask();
-  const categoryConfig = TASK_CATEGORY_CONFIG[category];
-
-  els.taskSolution.classList.add("hidden");
-  els.toggleSolutionBtn.textContent = "Musterlösung anzeigen";
+// =====================
+// MUSTERLÖSUNG
+// =====================
+function generateSolution() {
+  const task = getCurrentTask();
 
   if (!task) {
-    els.taskMode.textContent = categoryConfig.label;
-    els.taskTitle.textContent = "Noch keine Aufgabe gewählt";
-    els.taskDescription.textContent = "Für diesen Bereich ist noch keine Aufgabe hinterlegt.";
-    els.taskPrompt.textContent = "Wähle eine Aufgabe aus, übernimm die Werte und rechne dann selbst.";
-    els.taskSolutionContent.textContent = "Noch keine Musterlösung geladen.";
+    taskSolutionContent.textContent = "Noch keine Musterlösung geladen.";
     return;
   }
 
-  els.taskMode.textContent = categoryConfig.label;
-  els.taskTitle.textContent = task.title;
-  els.taskDescription.textContent = task.description;
-  els.taskPrompt.textContent = formatTaskAsPrompt(task);
-  els.taskSolutionContent.textContent = task.solutionText || "Noch keine Musterlösung vorhanden.";
-}
-
-function applyTaskToInputs(task) {
-  if (!task) return;
-
-  const categoryConfig = TASK_CATEGORY_CONFIG[task.type];
-  if (!categoryConfig) return;
-
-  els.calcType.value = categoryConfig.mode;
-  updateMode(categoryConfig.mode);
-  clearInputs();
-
-  if (task.type === "mixing") {
-    els.inputs[0].value = task.high ?? "";
-    els.inputs[1].value = task.low ?? "";
-    els.inputs[2].value = task.target ?? "";
-    els.inputs[3].value = task.total_ml ?? "";
-  } else if (task.type === "concentration") {
-    els.inputs[0].value = task.strong_ml ?? "";
-    els.inputs[1].value = task.strong_pct ?? "";
-    els.inputs[2].value = task.water_ml ?? "";
-    els.inputs[3].value = task.extra_ml ?? "";
-  }
-
-  els.output.textContent = "Werte aus der Aufgabe übernommen. Rechne jetzt selbst und vergleiche danach mit der Musterlösung.";
-}
-
-function loadExample() {
-  const mode = els.calcType.value;
-
-  if (mode === "Mischungsrechner") {
-    const item = templates.mixing_examples[0] || { high: 12, low: 2, target: 6, total_ml: 40 };
-    els.inputs[0].value = item.high ?? "";
-    els.inputs[1].value = item.low ?? "";
-    els.inputs[2].value = item.target ?? "";
-    els.inputs[3].value = item.total_ml ?? "";
-  } else if (mode === "Verhältnis") {
-    const item = templates.mixing_examples[1] || { high: 12, low: 3, target: 6 };
-    els.inputs[0].value = item.high ?? "";
-    els.inputs[1].value = item.low ?? "";
-    els.inputs[2].value = item.target ?? "";
-    els.inputs[3].value = "";
-  } else if (mode === "Konzentration") {
-    const item = templates.concentration_examples[0] || { strong_ml: 40, strong_pct: 12, water_ml: 20, extra_ml: 60 };
-    els.inputs[0].value = item.strong_ml ?? "";
-    els.inputs[1].value = item.strong_pct ?? "";
-    els.inputs[2].value = item.water_ml ?? "";
-    els.inputs[3].value = item.extra_ml ?? "";
-  } else if (mode === "Deckungsbeitrag") {
-    const item = templates.business_examples[0] || { umsatz: 20, variable_kosten: 6 };
-    els.inputs[0].value = item.umsatz ?? "";
-    els.inputs[1].value = item.variable_kosten ?? "";
-    els.inputs[2].value = "";
-    els.inputs[3].value = "";
-  } else if (mode === "Wareneinsatzquote") {
-    const item = templates.business_examples[1] || { wareneinsatz: 6, umsatz: 20 };
-    els.inputs[0].value = item.wareneinsatz ?? "";
-    els.inputs[1].value = item.umsatz ?? "";
-    els.inputs[2].value = "";
-    els.inputs[3].value = "";
-  }
-}
-
-function calculate() {
-  try {
-    const mode = els.calcType.value;
-    let solved;
-
-    if (mode === "Mischungsrechner") {
-      const strong = parseNum(els.inputs[0].value);
-      const weak = parseNum(els.inputs[1].value);
-      const target = parseNum(els.inputs[2].value);
-      const total = parseNum(els.inputs[3].value, false);
-      solved = solveMixing(strong, weak, target, total);
-    } else if (mode === "Verhältnis") {
-      const strong = parseNum(els.inputs[0].value);
-      const weak = parseNum(els.inputs[1].value);
-      const target = parseNum(els.inputs[2].value);
-      solved = solveMixing(strong, weak, target, null);
-    } else if (mode === "Konzentration") {
-      solved = solveFinalConcentration(
-        parseNum(els.inputs[0].value),
-        parseNum(els.inputs[1].value),
-        parseNum(els.inputs[2].value),
-        parseNum(els.inputs[3].value)
-      );
-    } else if (mode === "Deckungsbeitrag") {
-      solved = solveDeckungsbeitrag(parseNum(els.inputs[0].value), parseNum(els.inputs[1].value));
-    } else if (mode === "Wareneinsatzquote") {
-      solved = solveWareneinsatzquote(parseNum(els.inputs[0].value), parseNum(els.inputs[1].value));
-    } else {
-      throw new Error(`Unbekannter Modus: ${mode}`);
-    }
-
-    els.output.textContent = `ERGEBNIS:\n${solved.result}\n\n--------------------------------\n\nRECHENWEG:\n${solved.steps}`;
-  } catch (error) {
-    els.output.textContent = `FEHLER:\n${error.message}`;
-  }
-}
-
-function toggleSolution() {
-  const hidden = els.taskSolution.classList.toggle("hidden");
-  els.toggleSolutionBtn.textContent = hidden ? "Musterlösung anzeigen" : "Musterlösung verbergen";
-}
-
-function buildSolutionTextForTask(task) {
   try {
     if (task.type === "mixing") {
-      const solved = solveMixing(task.high, task.low, task.target, task.total_ml ?? null);
-      return `ERGEBNIS:\n${solved.result}\n\n--------------------------------\n\nRECHENWEG:\n${solved.steps}`;
+      taskSolutionContent.textContent = solveMixing(
+        task.high,
+        task.low,
+        task.target,
+        task.total_ml != null ? task.total_ml : null
+      ).fullOutput;
+    } else if (task.type === "concentration") {
+      taskSolutionContent.textContent = solveConcentration(
+        task.strong_ml,
+        task.strong_pct,
+        task.water_ml,
+        task.extra_ml
+      ).fullOutput;
+    } else if (task.type === "deckungsbeitrag") {
+      taskSolutionContent.textContent = solveDeckungsbeitrag(
+        task.umsatz,
+        task.variable_kosten
+      ).fullOutput;
+    } else if (task.type === "wareneinsatzquote") {
+      taskSolutionContent.textContent = solveWareneinsatzquote(
+        task.wareneinsatz,
+        task.umsatz
+      ).fullOutput;
+    } else if (task.type === "warenrabatt") {
+      taskSolutionContent.textContent = solveWarenrabatt(
+        task.preis1,
+        task.rabatt1,
+        task.preis2,
+        task.rabatt2
+      ).fullOutput;
+    } else if (task.type === "preisberechnung") {
+      taskSolutionContent.textContent = solvePreisberechnung(
+        task.stueckpreis,
+        task.menge1,
+        task.rabatt1,
+        task.menge2,
+        task.rabatt2
+      ).fullOutput;
+    } else if (task.type === "bezugskalkulation") {
+      taskSolutionContent.textContent = solveBezugskalkulation(
+        task.stueckpreis,
+        task.menge,
+        task.rabatt,
+        task.skonto,
+        task.bezugskosten
+      ).fullOutput;
+    } else if (task.type === "verkaufskalkulation") {
+      taskSolutionContent.textContent = solveVerkaufskalkulation(
+        task.listenpreis,
+        task.rabatt,
+        task.skonto,
+        task.bezugskosten,
+        task.handlungskosten,
+        task.gewinn,
+        task.mwst
+      ).fullOutput;
+    } else if (task.type === "umweltschutz") {
+      taskSolutionContent.textContent = solveUmweltschutz(
+        task.rest_ml,
+        task.tuben_pro_tag,
+        task.arbeitstage_pro_monat
+      ).fullOutput;
+    } else if (task.type === "marketing_vormonat") {
+      taskSolutionContent.textContent = solveMarketingVormonat(
+        task.aktuelle_kunden,
+        task.steigerung
+      ).fullOutput;
+    } else if (task.type === "marketing_umsatz") {
+      taskSolutionContent.textContent = solveMarketingUmsatz(
+        task.kunden,
+        task.umsatz_pro_kunde
+      ).fullOutput;
+    } else {
+      taskSolutionContent.textContent = "Für diese Aufgabe ist noch keine Musterlösung hinterlegt.";
     }
-
-    if (task.type === "concentration") {
-      const solved = solveFinalConcentration(task.strong_ml, task.strong_pct, task.water_ml, task.extra_ml);
-      return `ERGEBNIS:\n${solved.result}\n\n--------------------------------\n\nRECHENWEG:\n${solved.steps}`;
-    }
-  } catch (error) {
-    return `FEHLER IN DER MUSTERLÖSUNG:\n${error.message}`;
+  } catch (err) {
+    taskSolutionContent.textContent = `FEHLER:\n${err.message}`;
   }
-
-  return "Noch keine Musterlösung vorhanden.";
 }
 
-async function loadTemplates() {
-  try {
-    const response = await fetch("task_templates.json", { cache: "no-store" });
-    if (!response.ok) return;
-    templates = await response.json();
-  } catch (_err) {
-    // Fallback bleibt aktiv.
-  }
+// =====================
+// BEISPIELE
+// =====================
+function loadExample() {
+  applyMode(calcType.value);
 
-  const groups = getTaskGroups();
-  for (const [type, list] of Object.entries(groups)) {
-    groups[type] = (list || []).map((task) => ({
-      ...task,
-      solutionText: task.solutionText || buildSolutionTextForTask(task),
-    }));
+  if (calcType.value === "Mischungsrechner") {
+    fields[0].input.value = "12";
+    fields[1].input.value = "4";
+    fields[2].input.value = "6";
+    fields[3].input.value = "40";
+  } else if (calcType.value === "Verhältnis") {
+    fields[0].input.value = "12";
+    fields[1].input.value = "3";
+    fields[2].input.value = "6";
+  } else if (calcType.value === "Konzentration") {
+    fields[0].input.value = "40";
+    fields[1].input.value = "12";
+    fields[2].input.value = "20";
+    fields[3].input.value = "60";
+  } else if (calcType.value === "Deckungsbeitrag") {
+    fields[0].input.value = "20";
+    fields[1].input.value = "6";
+  } else if (calcType.value === "Wareneinsatzquote") {
+    fields[0].input.value = "6";
+    fields[1].input.value = "20";
+  } else if (calcType.value === "Warenrabatt") {
+    fields[0].input.value = "110";
+    fields[1].input.value = "18";
+    fields[2].input.value = "9.8";
+    fields[3].input.value = "7";
+  } else if (calcType.value === "Preisberechnung") {
+    fields[0].input.value = "7.5";
+    fields[1].input.value = "50";
+    fields[2].input.value = "3";
+    fields[3].input.value = "100";
+    fields[4].input.value = "10";
+  } else if (calcType.value === "Bezugskalkulation") {
+    fields[0].input.value = "2.1";
+    fields[1].input.value = "50";
+    fields[2].input.value = "3";
+    fields[3].input.value = "2";
+    fields[4].input.value = "7.5";
+  } else if (calcType.value === "Verkaufskalkulation") {
+    fields[0].input.value = "5.8";
+    fields[1].input.value = "8.5";
+    fields[2].input.value = "3";
+    fields[3].input.value = "4.7";
+    fields[4].input.value = "30";
+    fields[5].input.value = "35";
+    fields[6].input.value = "19";
+  } else if (calcType.value === "Umweltschutz") {
+    fields[0].input.value = "8";
+    fields[1].input.value = "5";
+    fields[2].input.value = "20";
+  } else if (calcType.value === "Marketing Vormonat") {
+    fields[0].input.value = "876";
+    fields[1].input.value = "20";
+  } else if (calcType.value === "Marketing Umsatz") {
+    fields[0].input.value = "876";
+    fields[1].input.value = "29.5";
   }
 }
 
-els.calcType.addEventListener("change", (event) => updateMode(event.target.value));
-els.exampleBtn.addEventListener("click", loadExample);
-els.clearBtn.addEventListener("click", clearInputs);
-els.calcBtn.addEventListener("click", calculate);
-els.taskCategory.addEventListener("change", renderTaskSelect);
-els.taskSelect.addEventListener("change", renderTaskDetails);
-els.loadTaskBtn.addEventListener("click", () => applyTaskToInputs(getSelectedTask()));
-els.toggleSolutionBtn.addEventListener("click", toggleSolution);
+// =====================
+// EVENTS
+// =====================
+calcType.addEventListener("change", () => applyMode(calcType.value));
+taskCategory.addEventListener("change", updateTaskList);
+taskSelect.addEventListener("change", showTask);
 
-(async function init() {
-  await loadTemplates();
-  els.calcType.value = "Mischungsrechner";
-  updateMode("Mischungsrechner");
-  els.taskCategory.value = "mixing";
-  renderTaskSelect();
-})();
+loadTaskBtn.addEventListener("click", () => {
+  const task = getCurrentTask();
+  loadTaskIntoCalculator(task);
+});
+
+toggleSolutionBtn.addEventListener("click", () => {
+  const isHidden = taskSolution.classList.contains("hidden");
+  taskSolution.classList.toggle("hidden");
+
+  if (isHidden) {
+    generateSolution();
+    toggleSolutionBtn.textContent = "Musterlösung verbergen";
+  } else {
+    toggleSolutionBtn.textContent = "Musterlösung anzeigen";
+  }
+});
+
+exampleBtn.addEventListener("click", loadExample);
+
+clearBtn.addEventListener("click", () => {
+  applyMode(calcType.value);
+});
+
+calcBtn.addEventListener("click", calculate);
+
+// =====================
+// START
+// =====================
+initCalcTypes();
+applyMode("Mischungsrechner");
+initTasks();

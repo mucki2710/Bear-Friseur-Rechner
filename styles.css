@@ -119,6 +119,10 @@ body {
   gap: 6px;
 }
 
+.field.hidden {
+  display: none;
+}
+
 .field span {
   font-weight: 600;
   font-size: 0.95rem;
@@ -195,10 +199,10 @@ pre {
 }
 
 .task-help {
-  display: block; /* statt flex */
+  display: block;
   background: #fff;
   padding: 8px 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   line-height: 1.4;
 }
 
@@ -341,16 +345,4 @@ pre {
     padding: 12px;
     min-height: 140px;
   }
-  
-  .task-help {
-      padding: 6px 8px;
-    }
-
-    .task-help strong {
-      font-size: 0.75rem;
-    }
-
-    .task-help span {
-      font-size: 0.78rem;
-    }
 }

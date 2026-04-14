@@ -58,10 +58,10 @@
         "total_ml": 60
       },
       {
-        "type": "mixing",
+        "type": "ratio",
         "title": "Verhältnis für 4% aus 12% und 2%",
         "description": "Eine 4%ige Lösung soll aus 12% und 2% hergestellt werden. Es ist keine Gesamtmenge vorgegeben. Bestimme das Mischungsverhältnis.",
-        "prompt": "Wechsle im Rechner nach dem Übernehmen der Werte auf 'Verhältnis' oder lasse die Gesamtmenge leer und ermittle nur das Verhältnis.",
+        "prompt": "Nutze den Verhältnis-Rechner und ermittle nur das Mischungsverhältnis.",
         "high": 12,
         "low": 2,
         "target": 4
@@ -97,6 +97,132 @@
         "strong_pct": 6,
         "water_ml": 25,
         "extra_ml": 25
+      }
+    ],
+    "deckungsbeitrag": [
+      {
+        "type": "deckungsbeitrag",
+        "title": "Deckungsbeitrag für eine Dienstleistung",
+        "description": "Eine Dienstleistung bringt 20 € Umsatz. Die variablen Kosten betragen 6 €. Berechne den Deckungsbeitrag.",
+        "prompt": "Nutze die Formel Deckungsbeitrag = Umsatz - variable Kosten.",
+        "umsatz": 20,
+        "variable_kosten": 6
+      }
+    ],
+    "wareneinsatzquote": [
+      {
+        "type": "wareneinsatzquote",
+        "title": "Wareneinsatzquote berechnen",
+        "description": "Der Wareneinsatz beträgt 6 €, der Umsatz 20 €. Berechne die Wareneinsatzquote.",
+        "prompt": "Nutze die Formel Wareneinsatzquote = Wareneinsatz / Umsatz × 100.",
+        "wareneinsatz": 6,
+        "umsatz": 20
+      }
+    ],
+    "warenrabatt": [
+      {
+        "type": "warenrabatt",
+        "title": "Messerkoffer und Shampoo mit Rabatt",
+        "description": "Die Auszubildende Susi kauft ein Schneidewerkzeug für 110 € mit 18 % Rabatt und ein Shampoo für 9,80 € mit 7 % Rabatt. Berechne den zu zahlenden Gesamtbetrag.",
+        "prompt": "Berechne zuerst für beide Artikel den Rabattbetrag und dann den Zahlbetrag. Addiere am Ende beide Zahlbeträge.",
+        "preis1": 110,
+        "rabatt1": 18,
+        "preis2": 9.8,
+        "rabatt2": 7
+      }
+    ],
+    "preisberechnung": [
+      {
+        "type": "preisberechnung",
+        "title": "Pflegeshampoo bei 50 und 100 Stück",
+        "description": "Ein Pflegeshampoo kostet 7,50 € pro Stück. Bei 50 Stück gibt es 3 % Rabatt, bei 100 Stück 10 % Rabatt. Berechne jeweils Gesamtpreis und Stückpreis.",
+        "prompt": "Trage Stückpreis, Menge 1, Rabatt 1, Menge 2 und Rabatt 2 ein.",
+        "stueckpreis": 7.5,
+        "menge1": 50,
+        "rabatt1": 3,
+        "menge2": 100,
+        "rabatt2": 10
+      }
+    ],
+    "bezugskalkulation": [
+      {
+        "type": "bezugskalkulation",
+        "title": "Festiger-Serie: Bezugspreis bei 50 Portionen",
+        "description": "Ein Festiger kostet 2,10 € pro Portion. Bei 50 Portionen gibt es 3 % Rabatt, 2 % Skonto und 7,50 € Porto. Berechne den Gesamtbezugspreis und den Bezugspreis je Portion.",
+        "prompt": "Nutze die Bezugskalkulation: Listenpreis → Rabatt → Zieleinkaufspreis → Skonto → Bareinkaufspreis → Bezugskosten.",
+        "stueckpreis": 2.1,
+        "menge": 50,
+        "rabatt": 3,
+        "skonto": 2,
+        "bezugskosten": 7.5
+      },
+      {
+        "type": "bezugskalkulation",
+        "title": "Festiger-Serie: Bezugspreis bei 200 Portionen",
+        "description": "Ein Festiger kostet 2,10 € pro Portion. Bei 200 Portionen gibt es 12 % Rabatt, 2 % Skonto und 7,50 € Porto. Berechne den Gesamtbezugspreis und den Bezugspreis je Portion.",
+        "prompt": "Vergleiche den Stück-Bezugspreis mit dem Fall 50 Portionen.",
+        "stueckpreis": 2.1,
+        "menge": 200,
+        "rabatt": 12,
+        "skonto": 2,
+        "bezugskosten": 7.5
+      }
+    ],
+    "verkaufskalkulation": [
+      {
+        "type": "verkaufskalkulation",
+        "title": "Bodylotion im Salon kalkulieren",
+        "description": "Irene kalkuliert eine Bodylotion mit Listenpreis 5,80 €, Rabatt 8,5 %, Skonto 3 %, Bezugskosten 4,70 €, Handlungskosten 30 %, Gewinn 35 % und Mehrwertsteuer 19 %. Berechne den Verkaufspreis.",
+        "prompt": "Arbeite die Verkaufskalkulation Schritt für Schritt vom Listeneinkaufspreis bis zum Bruttoverkaufspreis durch.",
+        "listenpreis": 5.8,
+        "rabatt": 8.5,
+        "skonto": 3,
+        "bezugskosten": 4.7,
+        "handlungskosten": 30,
+        "gewinn": 35,
+        "mwst": 19
+      }
+    ],
+    "umweltschutz": [
+      {
+        "type": "umweltschutz",
+        "title": "Farbverlust pro Monat und Jahr",
+        "description": "In einer Farbtube bleiben 8 ml zurück. Pro Tag werden durchschnittlich 5 Tuben verbraucht, und im Monat wird an 20 Tagen gearbeitet. Berechne den Farbverlust pro Monat und pro Jahr.",
+        "prompt": "Bestimme zuerst den Verlust pro Tag, danach pro Monat und schließlich pro Jahr.",
+        "rest_ml": 8,
+        "tuben_pro_tag": 5,
+        "arbeitstage_pro_monat": 20
+      }
+    ],
+    "marketing": [
+      {
+        "type": "marketing_vormonat",
+        "title": "Kundenzahl im Vormonat",
+        "description": "Im vergangenen Monat besuchten 876 Kunden den Salon. Das entspricht einer Steigerung von 20 % gegenüber dem Vormonat. Berechne die Kundenzahl im Vormonat.",
+        "prompt": "Der aktuelle Monat entspricht 120 % des Vormonats. Rechne deshalb rückwärts.",
+        "aktuelle_kunden": 876,
+        "steigerung": 20
+      },
+      {
+        "type": "marketing_umsatz",
+        "title": "Gesamtumsatz mit Neukunden",
+        "description": "Durchschnittlich erbrachte jeder Neukunde einen Umsatz von 29,50 €. Bei 876 Kunden soll der Gesamtumsatz berechnet werden.",
+        "prompt": "Multipliziere Kundenzahl und durchschnittlichen Umsatz pro Kunde.",
+        "kunden": 876,
+        "umsatz_pro_kunde": 29.5
+      }
+    ],
+    "kalkulation": [
+      {
+        "type": "bezugskalkulation",
+        "title": "Haarlack: Bezugspreis pro Dose",
+        "description": "Es werden 8 Kartons mit je 12 Dosen Haarlack zu 5,20 € pro Dose bestellt. Es gibt 5 % Rabatt und 2 % Skonto. Berechne den Gesamtbezugspreis und den Bezugspreis pro Dose.",
+        "prompt": "Berechne zuerst die gesamte Stückzahl und nutze dann die Bezugskalkulation ohne zusätzliche Bezugskosten.",
+        "stueckpreis": 5.2,
+        "menge": 96,
+        "rabatt": 5,
+        "skonto": 2,
+        "bezugskosten": 0
       }
     ]
   }
