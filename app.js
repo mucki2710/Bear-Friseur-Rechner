@@ -1,9 +1,6 @@
 // =====================
 // DOM
 // =====================
-const calcType = document.getElementById("calcType");
-const output = document.getElementById("output");
-
 const taskCategory = document.getElementById("taskCategory");
 const taskSelect = document.getElementById("taskSelect");
 const taskMode = document.getElementById("taskMode");
@@ -11,122 +8,86 @@ const taskTitle = document.getElementById("taskTitle");
 const taskDescription = document.getElementById("taskDescription");
 const taskPrompt = document.getElementById("taskPrompt");
 
-const loadTaskBtn = document.getElementById("loadTaskBtn");
-const toggleSolutionBtn = document.getElementById("toggleSolutionBtn");
-const taskSolution = document.getElementById("taskSolution");
-const taskSolutionContent = document.getElementById("taskSolutionContent");
+const manualModeBtn = document.getElementById("manualModeBtn");
+const stepModeBtn = document.getElementById("stepModeBtn");
+const showSolutionBtn = document.getElementById("showSolutionBtn");
+const statusInfo = document.getElementById("statusInfo");
 
-const exampleBtn = document.getElementById("exampleBtn");
-const clearBtn = document.getElementById("clearBtn");
-const calcBtn = document.getElementById("calcBtn");
+const manualPanel = document.getElementById("manualPanel");
+const stepPanel = document.getElementById("stepPanel");
+const solutionPanel = document.getElementById("solutionPanel");
+
+const checkManualBtn = document.getElementById("checkManualBtn");
+const clearManualBtn = document.getElementById("clearManualBtn");
+const manualFeedback = document.getElementById("manualFeedback");
+
+const stepCounter = document.getElementById("stepCounter");
+const stepQuestion = document.getElementById("stepQuestion");
+const stepHint = document.getElementById("stepHint");
+const stepInput = document.getElementById("stepInput");
+const checkStepBtn = document.getElementById("checkStepBtn");
+const showHintBtn = document.getElementById("showHintBtn");
+const nextStepBtn = document.getElementById("nextStepBtn");
+const stepFeedback = document.getElementById("stepFeedback");
+
+const solutionOutput = document.getElementById("solutionOutput");
 
 const fields = Array.from({ length: 8 }, (_, i) => ({
   wrapper: document.getElementById(`field${i + 1}`),
   label: document.getElementById(`label${i + 1}`),
   input: document.getElementById(`input${i + 1}`)
-}));
+})).filter(field => field.wrapper || field.label || field.input);
+
+const manualOperatorBar = manualPanel?.querySelector('.operator-bar[data-target="active-manual"]');
 
 // =====================
 // STATE
 // =====================
 let TASK_DATA = { exam_tasks: {} };
+let currentWorkMode = "manual";
+let currentSteps = [];
+let currentStepIndex = 0;
+let hintVisible = false;
+let activePathInput = null;
 
 // =====================
-// RECHENARTEN
-// =====================
-const calcTypes = [
-  "Mischungsrechner",
-  "Verhältnis",
-  "Konzentration",
-  "Deckungsbeitrag",
-  "Wareneinsatzquote",
-  "Warenrabatt",
-  "Preisberechnung",
-  "Bezugskalkulation",
-  "Verkaufskalkulation",
-  "Umweltschutz",
-  "Marketing Vormonat",
-  "Marketing Umsatz"
-];
-
-function initCalcTypes() {
-  calcType.innerHTML = "";
-  calcTypes.forEach((type) => {
-    const option = document.createElement("option");
-    option.value = type;
-    option.textContent = type;
-    calcType.appendChild(option);
-  });
-}
-
-// =====================
-// HILFSFUNKTIONEN
+// HELPERS
 // =====================
 function parseNum(value) {
-  const normalized = String(value ?? "").trim().replace(",", ".");
+  const normalized = String(value ?? "")
+    .trim()
+    .replace(/,/g, ".")
+    .replace(/×/g, "*")
+    .replace(/÷/g, "/");
+
   if (!normalized) {
-    throw new Error("Bitte alle benötigten Felder ausfüllen.");
+    throw new Error("Bitte eine Eingabe machen.");
   }
-  const num = Number(normalized);
-  if (Number.isNaN(num)) {
-    throw new Error("Ungültige Zahl eingegeben.");
+
+  if (!/^[0-9+\-*/().:\s]+$/.test(normalized)) {
+    throw new Error("Ungültige Eingabe.");
   }
-  return num;
+
+  if (normalized.includes(":")) {
+    throw new Error("Bitte hier einen Rechenausdruck eingeben, kein Verhältnis mit Doppelpunkt.");
+  }
+
+  let result;
+  try {
+    result = Function(`"use strict"; return (${normalized})`)();
+  } catch {
+    throw new Error("Ungültiger Rechenausdruck.");
+  }
+
+  if (typeof result !== "number" || Number.isNaN(result) || !Number.isFinite(result)) {
+    throw new Error("Ungültiger Rechenausdruck.");
+  }
+
+  return result;
 }
 
-function clearAllInputs() {
-  fields.forEach((field) => {
-    field.input.value = "";
-    field.input.disabled = false;
-    field.input.placeholder = "";
-  });
-}
-
-function hideAllFields() {
-  fields.forEach((field) => {
-    field.wrapper.classList.add("hidden");
-    field.label.textContent = "";
-  });
-}
-
-function showField(index, label, placeholder = "") {
-  const field = fields[index];
-  if (!field) return;
-  field.wrapper.classList.remove("hidden");
-  field.label.textContent = label;
-  field.input.placeholder = placeholder;
-  field.input.disabled = false;
-}
-
-function setOutputDefault() {
-  output.textContent = "Noch keine Berechnung.";
-}
-
-function formatCategoryName(key) {
-  const map = {
-    mixing: "Mischung",
-    concentration: "Konzentration",
-    deckungsbeitrag: "Deckungsbeitrag",
-    wareneinsatzquote: "Wareneinsatzquote",
-    warenrabatt: "Warenrabatt",
-    preisberechnung: "Preisberechnung",
-    bezugskalkulation: "Bezugskalkulation",
-    verkaufskalkulation: "Verkaufskalkulation",
-    umweltschutz: "Umweltschutz",
-    marketing_vormonat: "Marketing Vormonat",
-    marketing_umsatz: "Marketing Umsatz"
-  };
-  return map[key] || key;
-}
-
-function getCurrentTask() {
-  const category = taskCategory.value;
-  const index = Number(taskSelect.value);
-
-  if (!TASK_DATA.exam_tasks?.[category]) return null;
-  if (Number.isNaN(index)) return null;
-
-  return TASK_DATA.exam_tasks[category][index] || null;
+function nearlyEqual(a, b, tolerance = 0.1) {
+  return Math.abs(a - b) <= tolerance;
 }
 
 function gcd(a, b) {
@@ -134,194 +95,773 @@ function gcd(a, b) {
 }
 
 function normalizeRatio(a, b) {
-  const scale = 10;
+  const scale = 100;
   const aa = Math.round(a * scale);
   const bb = Math.round(b * scale);
   const g = aa && bb ? gcd(aa, bb) : Math.max(aa, bb, 1);
   return [aa / g, bb / g];
 }
 
-// =====================
-// RECHNER-UI
-// =====================
-function applyMode(mode) {
-  calcType.value = mode;
-  clearAllInputs();
-  hideAllFields();
+function formatNumber(value, digits = 2) {
+  if (Number.isInteger(value)) return String(value);
+  return Number(value).toFixed(digits).replace(/\.?0+$/, "");
+}
 
-  if (mode === "Mischungsrechner") {
-    showField(0, "Starke Lösung (%)", "z. B. 12");
-    showField(1, "Schwache Lösung (%)", "z. B. 3");
-    showField(2, "Zielkonzentration (%)", "z. B. 6");
-    showField(3, "Gesamtmenge (ml)", "z. B. 40");
-  } else if (mode === "Verhältnis") {
-    showField(0, "Starke Lösung (%)", "z. B. 12");
-    showField(1, "Schwache Lösung (%)", "z. B. 2");
-    showField(2, "Zielkonzentration (%)", "z. B. 4");
-  } else if (mode === "Konzentration") {
-    showField(0, "Menge Entwickler (ml)", "z. B. 40");
-    showField(1, "Konzentration (%)", "z. B. 12");
-    showField(2, "Wasser (ml)", "z. B. 20");
-    showField(3, "Farbcreme (ml)", "z. B. 60");
-  } else if (mode === "Deckungsbeitrag") {
-    showField(0, "Umsatz (€)", "z. B. 20");
-    showField(1, "Variable Kosten (€)", "z. B. 6");
-  } else if (mode === "Wareneinsatzquote") {
-    showField(0, "Wareneinsatz (€)", "z. B. 6");
-    showField(1, "Umsatz (€)", "z. B. 20");
-  } else if (mode === "Warenrabatt") {
-    showField(0, "Preis Artikel 1 (€)", "z. B. 110");
-    showField(1, "Rabatt Artikel 1 (%)", "z. B. 18");
-    showField(2, "Preis Artikel 2 (€)", "z. B. 9.8");
-    showField(3, "Rabatt Artikel 2 (%)", "z. B. 7");
-  } else if (mode === "Preisberechnung") {
-    showField(0, "Stückpreis (€)", "z. B. 7.5");
-    showField(1, "Menge 1", "z. B. 50");
-    showField(2, "Rabatt 1 (%)", "z. B. 3");
-    showField(3, "Menge 2", "z. B. 100");
-    showField(4, "Rabatt 2 (%)", "z. B. 10");
-  } else if (mode === "Bezugskalkulation") {
-    showField(0, "Stückpreis (€)", "z. B. 2.1");
-    showField(1, "Menge", "z. B. 50");
-    showField(2, "Rabatt (%)", "z. B. 3");
-    showField(3, "Skonto (%)", "z. B. 2");
-    showField(4, "Bezugskosten (€)", "z. B. 7.5");
-  } else if (mode === "Verkaufskalkulation") {
-    showField(0, "Listenpreis (€)", "z. B. 5.8");
-    showField(1, "Rabatt (%)", "z. B. 8.5");
-    showField(2, "Skonto (%)", "z. B. 3");
-    showField(3, "Bezugskosten (€)", "z. B. 4.7");
-    showField(4, "Handlungskosten (%)", "z. B. 30");
-    showField(5, "Gewinn (%)", "z. B. 35");
-    showField(6, "MwSt (%)", "z. B. 19");
-  } else if (mode === "Umweltschutz") {
-    showField(0, "Rest pro Tube (ml)", "z. B. 8");
-    showField(1, "Tuben pro Tag", "z. B. 5");
-    showField(2, "Arbeitstage pro Monat", "z. B. 20");
-  } else if (mode === "Marketing Vormonat") {
-    showField(0, "Aktuelle Kunden", "z. B. 876");
-    showField(1, "Steigerung (%)", "z. B. 20");
-  } else if (mode === "Marketing Umsatz") {
-    showField(0, "Kunden", "z. B. 876");
-    showField(1, "Umsatz pro Kunde (€)", "z. B. 29.5");
+function formatCategoryName(key) {
+  const map = {
+    anteile: "Anteile",
+    mixing: "Mischung",
+    concentration: "Konzentration"
+  };
+  return map[key] || key;
+}
+
+function getCurrentTask() {
+  const category = taskCategory.value;
+  const index = Number(taskSelect.value);
+  if (!TASK_DATA.exam_tasks?.[category]) return null;
+  if (Number.isNaN(index)) return null;
+  return TASK_DATA.exam_tasks[category][index] || null;
+}
+
+function resetAllPanels() {
+  manualPanel.classList.add("hidden");
+  stepPanel.classList.add("hidden");
+  solutionPanel.classList.add("hidden");
+}
+
+function getSolvedStepCount() {
+  return currentSteps.filter(step => step.solved).length;
+}
+
+function updateProgressInfo() {
+  if (!currentSteps.length) {
+    statusInfo.textContent = "ℹ Keine Schritte geladen.";
+    return;
   }
 
-  setOutputDefault();
+  const solved = getSolvedStepCount();
+  const total = currentSteps.length;
+
+  if (currentWorkMode === "manual") {
+    statusInfo.textContent = `ℹ Rechenweg eingeben • Fortschritt: ${solved} / ${total} Schritte`;
+    return;
+  }
+
+  if (currentWorkMode === "step") {
+    const current = Math.min(currentStepIndex + 1, total);
+    statusInfo.textContent = `ℹ Einzelschritt-Fokus • Schritt ${current} / ${total}`;
+    return;
+  }
+
+  if (currentWorkMode === "solution") {
+    statusInfo.textContent = `ℹ Musterlösung • ${total} Rechenschritte`;
+  }
 }
 
-function modeFromTask(task) {
-  if (!task) return "Mischungsrechner";
-
-  const map = {
-    mixing: task.total_ml != null ? "Mischungsrechner" : "Verhältnis",
-    ratio: "Verhältnis",
-    concentration: "Konzentration",
-    deckungsbeitrag: "Deckungsbeitrag",
-    wareneinsatzquote: "Wareneinsatzquote",
-    warenrabatt: "Warenrabatt",
-    preisberechnung: "Preisberechnung",
-    bezugskalkulation: "Bezugskalkulation",
-    verkaufskalkulation: "Verkaufskalkulation",
-    umweltschutz: "Umweltschutz",
-    marketing_vormonat: "Marketing Vormonat",
-    marketing_umsatz: "Marketing Umsatz"
-  };
-
-  return map[task.type] || "Mischungsrechner";
+function setPathOperatorBarVisibility(visible) {
+  if (!manualOperatorBar) return;
+  manualOperatorBar.classList.toggle("hidden", !visible);
 }
 
-function loadTaskIntoCalculator(task) {
+function setWorkMode(mode) {
+  currentWorkMode = mode;
+  resetAllPanels();
+
+  if (mode === "manual") {
+    manualPanel.classList.remove("hidden");
+    setPathOperatorBarVisibility(true);
+  } else if (mode === "step") {
+    stepPanel.classList.remove("hidden");
+    setPathOperatorBarVisibility(false);
+  } else if (mode === "solution") {
+    solutionPanel.classList.remove("hidden");
+    setPathOperatorBarVisibility(false);
+  }
+
+  updateProgressInfo();
+}
+
+function insertAtCursor(input, text) {
+  if (!input) return;
+
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? input.value.length;
+  const oldValue = input.value;
+
+  input.value = oldValue.slice(0, start) + text + oldValue.slice(end);
+
+  const newPos = start + text.length;
+  input.focus();
+  input.setSelectionRange(newPos, newPos);
+
+  const idx = Number(input.dataset.stepIndex);
+  if (!Number.isNaN(idx) && currentSteps[idx]) {
+    currentSteps[idx].userInput = input.value;
+  }
+}
+
+function setupOperatorBars() {
+  document.querySelectorAll(".operator-bar").forEach((bar) => {
+    const target = bar.dataset.target;
+
+    bar.querySelectorAll(".op-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (target === "stepInput") {
+          insertAtCursor(stepInput, btn.textContent);
+        } else if (target === "active-manual") {
+          insertAtCursor(activePathInput, btn.textContent);
+        }
+      });
+    });
+  });
+}
+
+// =====================
+// STEP DEFINITIONS
+// =====================
+function buildSteps(task) {
+  if (!task) return [];
+
+  if (task.type === "anteile") {
+    const totalParts = task.part1 + task.part2;
+    const onePart = task.total_ml / totalParts;
+
+    return [
+      {
+        label: "Teile addieren",
+        question: "Wie viele Teile insgesamt?",
+        prompt: "Addiere die Verhältnis-Zahlen.",
+        placeholder: `${task.part1}+${task.part2}`,
+        expected: totalParts,
+        hint: `${task.part1} + ${task.part2}`,
+        resultText: `${formatNumber(totalParts)} Teile`
+      },
+      {
+        label: "1 Teil berechnen",
+        question: "Wie viel ml entspricht 1 Teil?",
+        prompt: "Teile die Gesamtmenge durch die Gesamtteile.",
+        placeholder: `${task.total_ml}/${totalParts}`,
+        expected: onePart,
+        hint: `${task.total_ml} / ${totalParts}`,
+        resultText: `${formatNumber(onePart)} ml`
+      },
+      {
+        label: `${task.part1} Teile berechnen`,
+        question: `Wie viel ml sind ${task.part1} Teile?`,
+        prompt: "Multipliziere die Teilezahl mit dem Wert eines Teils.",
+        placeholder: `${task.part1}×${formatNumber(onePart)}`,
+        expected: onePart * task.part1,
+        hint: `${task.part1} × ${formatNumber(onePart)}`,
+        resultText: `${formatNumber(onePart * task.part1)} ml`
+      },
+      {
+        label: `${task.part2} Teile berechnen`,
+        question: `Wie viel ml sind ${task.part2} Teile?`,
+        prompt: "Multipliziere die Teilezahl mit dem Wert eines Teils.",
+        placeholder: `${task.part2}×${formatNumber(onePart)}`,
+        expected: onePart * task.part2,
+        hint: `${task.part2} × ${formatNumber(onePart)}`,
+        resultText: `${formatNumber(onePart * task.part2)} ml`
+      }
+    ];
+  }
+
+  if (task.type === "mixing") {
+    const diffStrong = task.high - task.target;
+    const diffWeak = task.target - task.low;
+    const totalParts = diffStrong + diffWeak;
+    const onePart = task.total_ml / totalParts;
+    const strongMl = onePart * diffWeak;
+    const weakMl = onePart * diffStrong;
+
+    return [
+      {
+        label: "Starke Lösung minus Ziel",
+        question: "Wie viel ist starke Lösung minus Zielkonzentration?",
+        prompt: "Berechne zuerst die obere Differenz im Mischkreuz.",
+        placeholder: `${task.high}-${task.target}`,
+        expected: diffStrong,
+        hint: `${task.high} - ${task.target}`,
+        resultText: formatNumber(diffStrong)
+      },
+      {
+        label: "Ziel minus schwache Lösung",
+        question: "Wie viel ist Zielkonzentration minus schwache Lösung?",
+        prompt: "Berechne jetzt die untere Differenz im Mischkreuz.",
+        placeholder: `${task.target}-${task.low}`,
+        expected: diffWeak,
+        hint: `${task.target} - ${task.low}`,
+        resultText: formatNumber(diffWeak)
+      },
+      {
+        label: "Anteil starke Lösung",
+        question: "Wie groß ist der Anteil der starken Lösung?",
+        prompt: "Der Anteil der starken Lösung entspricht der gegenüberliegenden Differenz.",
+        placeholder: `${diffWeak}`,
+        expected: diffWeak,
+        hint: `Anteil stark = ${diffWeak}`,
+        resultText: formatNumber(diffWeak)
+      },
+      {
+        label: "Anteil schwache Lösung",
+        question: "Wie groß ist der Anteil der schwachen Lösung?",
+        prompt: "Der Anteil der schwachen Lösung entspricht der gegenüberliegenden Differenz.",
+        placeholder: `${diffStrong}`,
+        expected: diffStrong,
+        hint: `Anteil schwach = ${diffStrong}`,
+        resultText: formatNumber(diffStrong)
+      },
+      {
+        label: "Gesamtteile",
+        question: "Wie viele Teile insgesamt?",
+        prompt: "Addiere beide Anteile.",
+        placeholder: `${diffWeak}+${diffStrong}`,
+        expected: totalParts,
+        hint: `${diffWeak} + ${diffStrong}`,
+        resultText: formatNumber(totalParts)
+      },
+      {
+        label: "1 Teil in ml",
+        question: "Wie viel ml entspricht 1 Teil?",
+        prompt: "Teile die Gesamtmenge durch die Gesamtteile.",
+        placeholder: `${task.total_ml}/${totalParts}`,
+        expected: onePart,
+        hint: `${task.total_ml} / ${totalParts}`,
+        resultText: `${formatNumber(onePart)} ml`
+      },
+      {
+        label: "Starke Lösung in ml",
+        question: "Wie viel ml starke Lösung werden benötigt?",
+        prompt: "Anteil starke Lösung × Wert eines Teils.",
+        placeholder: `${diffWeak}×${formatNumber(onePart)}`,
+        expected: strongMl,
+        hint: `${diffWeak} × ${formatNumber(onePart)}`,
+        resultText: `${formatNumber(strongMl)} ml`
+      },
+      {
+        label: "Schwache Lösung in ml",
+        question: "Wie viel ml schwache Lösung werden benötigt?",
+        prompt: "Anteil schwache Lösung × Wert eines Teils.",
+        placeholder: `${diffStrong}×${formatNumber(onePart)}`,
+        expected: weakMl,
+        hint: `${diffStrong} × ${formatNumber(onePart)}`,
+        resultText: `${formatNumber(weakMl)} ml`
+      }
+    ];
+  }
+
+  if (task.type === "ratio") {
+    const diffStrong = task.high - task.target;
+    const diffWeak = task.target - task.low;
+    const [ratioStrong, ratioWeak] = normalizeRatio(diffWeak, diffStrong);
+
+    return [
+      {
+        label: "Starke Lösung minus Ziel",
+        question: "Wie viel ist starke Lösung minus Zielkonzentration?",
+        prompt: "Berechne zuerst die obere Differenz.",
+        placeholder: `${task.high}-${task.target}`,
+        expected: diffStrong,
+        hint: `${task.high} - ${task.target}`,
+        resultText: formatNumber(diffStrong)
+      },
+      {
+        label: "Ziel minus schwache Lösung",
+        question: "Wie viel ist Zielkonzentration minus schwache Lösung?",
+        prompt: "Berechne danach die untere Differenz.",
+        placeholder: `${task.target}-${task.low}`,
+        expected: diffWeak,
+        hint: `${task.target} - ${task.low}`,
+        resultText: formatNumber(diffWeak)
+      },
+      {
+        label: "Verhältnis stark",
+        question: "Wie groß ist das gekürzte Verhältnis für die starke Lösung?",
+        prompt: "Kürze das Verhältnis der Anteile.",
+        placeholder: `${ratioStrong}`,
+        expected: ratioStrong,
+        hint: `${diffWeak} : ${diffStrong} → stark = ${ratioStrong}`,
+        resultText: formatNumber(ratioStrong)
+      },
+      {
+        label: "Verhältnis schwach",
+        question: "Wie groß ist das gekürzte Verhältnis für die schwache Lösung?",
+        prompt: "Kürze das Verhältnis der Anteile.",
+        placeholder: `${ratioWeak}`,
+        expected: ratioWeak,
+        hint: `${diffWeak} : ${diffStrong} → schwach = ${ratioWeak}`,
+        resultText: formatNumber(ratioWeak)
+      }
+    ];
+  }
+
+  if (task.type === "concentration") {
+    const active = task.strong_ml * task.strong_pct / 100;
+    const total = task.strong_ml + task.water_ml + task.extra_ml;
+    const resultPct = (active / total) * 100;
+
+    return [
+      {
+        label: "Wirkstoffmenge",
+        question: "Wie viel ml Wirkstoff sind im Entwickler enthalten?",
+        prompt: "Berechne zuerst die Wirkstoffmenge im Entwickler.",
+        placeholder: `${task.strong_ml}×${task.strong_pct}/100`,
+        expected: active,
+        hint: `${task.strong_ml} × ${task.strong_pct} / 100`,
+        resultText: `${formatNumber(active)} ml`
+      },
+      {
+        label: "Gesamtmenge",
+        question: "Wie groß ist die Gesamtmenge in ml?",
+        prompt: "Addiere Entwickler, Wasser und Zusatzmenge.",
+        placeholder: `${task.strong_ml}+${task.water_ml}+${task.extra_ml}`,
+        expected: total,
+        hint: `${task.strong_ml} + ${task.water_ml} + ${task.extra_ml}`,
+        resultText: `${formatNumber(total)} ml`
+      },
+      {
+        label: "Endkonzentration",
+        question: "Wie hoch ist die Endkonzentration in %?",
+        prompt: "Wirkstoffmenge / Gesamtmenge × 100.",
+        placeholder: `${formatNumber(active)}/${total}×100`,
+        expected: resultPct,
+        hint: `${formatNumber(active)} / ${total} × 100`,
+        resultText: `${formatNumber(resultPct)} %`
+      }
+    ];
+  }
+
+  return [];
+}
+
+function initializeCurrentSteps(task) {
+  currentSteps = buildSteps(task).map((step, index) => ({
+    ...step,
+    unlocked: index === 0,
+    solved: false,
+    hintVisible: false,
+    userInput: "",
+    feedback: ""
+  }));
+}
+
+function getSmartErrorFeedback(task, stepIndex, inputValue) {
+  if (!task || typeof inputValue !== "number") {
+    return `❌ Noch nicht richtig. Dein Ergebnis ist ${formatNumber(inputValue)}.`;
+  }
+
+  if (task.type === "anteile") {
+    const totalParts = task.part1 + task.part2;
+    const onePart = task.total_ml / totalParts;
+
+    if (stepIndex === 0) {
+      return `❌ Addiere nur die Verhältnis-Zahlen ${task.part1} und ${task.part2}.`;
+    }
+
+    if (stepIndex === 1) {
+      if (nearlyEqual(inputValue, task.total_ml * totalParts)) {
+        return `❌ Du hast wahrscheinlich multipliziert statt geteilt. Teile ${task.total_ml} durch ${totalParts}.`;
+      }
+      if (nearlyEqual(inputValue, task.total_ml / task.part1) || nearlyEqual(inputValue, task.total_ml / task.part2)) {
+        return `❌ Du musst durch die Gesamtteile teilen, nicht nur durch einen Anteil.`;
+      }
+      return `❌ Noch nicht richtig. Für 1 Teil rechnest du ${task.total_ml} / ${totalParts}.`;
+    }
+
+    if (stepIndex === 2) {
+      if (nearlyEqual(inputValue, onePart + task.part1)) {
+        return `❌ Hier musst du multiplizieren, nicht addieren. Rechne ${task.part1} × ${formatNumber(onePart)}.`;
+      }
+      if (nearlyEqual(inputValue, task.part2 * onePart)) {
+        return `❌ Das ist der andere Anteil. Hier wird der erste Anteil mit ${task.part1} Teilen gesucht.`;
+      }
+      return `❌ Noch nicht richtig. Rechne ${task.part1} × ${formatNumber(onePart)}.`;
+    }
+
+    if (stepIndex === 3) {
+      if (nearlyEqual(inputValue, onePart + task.part2)) {
+        return `❌ Hier musst du multiplizieren, nicht addieren. Rechne ${task.part2} × ${formatNumber(onePart)}.`;
+      }
+      if (nearlyEqual(inputValue, task.part1 * onePart)) {
+        return `❌ Das ist der andere Anteil. Hier wird der zweite Anteil mit ${task.part2} Teilen gesucht.`;
+      }
+      return `❌ Noch nicht richtig. Rechne ${task.part2} × ${formatNumber(onePart)}.`;
+    }
+  }
+
+  if (task.type === "mixing") {
+    if (stepIndex === 0) {
+      return `❌ Oben im Mischkreuz rechnest du starke Lösung minus Zielkonzentration.`;
+    }
+    if (stepIndex === 1) {
+      return `❌ Unten im Mischkreuz rechnest du Zielkonzentration minus schwache Lösung.`;
+    }
+    if (stepIndex === 2 || stepIndex === 3) {
+      return `❌ Die Anteile werden aus den gegenüberliegenden Differenzen übernommen.`;
+    }
+    if (stepIndex === 4) {
+      return `❌ Addiere beide Anteile zu den Gesamtteilen.`;
+    }
+    if (stepIndex === 5) {
+      return `❌ Teile die Gesamtmenge durch die Gesamtteile.`;
+    }
+    if (stepIndex === 6 || stepIndex === 7) {
+      return `❌ Jetzt musst du den Anteil mit dem ml-Wert eines Teils multiplizieren.`;
+    }
+    return `❌ Noch nicht richtig. Prüfe die Differenzen im Mischkreuz und die Gesamtteile.`;
+  }
+
+  if (task.type === "concentration") {
+    if (stepIndex === 0) {
+      return `❌ Berechne zuerst nur die Wirkstoffmenge im Entwickler: ml × Prozent / 100.`;
+    }
+    if (stepIndex === 1) {
+      return `❌ Zur Gesamtmenge gehören Entwickler, Wasser und Farbcreme.`;
+    }
+    if (stepIndex === 2) {
+      return `❌ Endkonzentration = Wirkstoffmenge / Gesamtmenge × 100.`;
+    }
+  }
+
+  return `❌ Noch nicht richtig. Dein Ergebnis ist ${formatNumber(inputValue)}.`;
+}
+
+// =====================
+// RECHENWEG-MODUS
+// =====================
+function ensurePathContainer() {
+  let pathContainer = document.getElementById("pathSteps");
+  if (!pathContainer) {
+    pathContainer = document.createElement("div");
+    pathContainer.id = "pathSteps";
+    pathContainer.className = "path-steps";
+    manualFeedback.parentNode.insertBefore(pathContainer, manualFeedback);
+  }
+  return pathContainer;
+}
+
+function clearClassicManualFields() {
+  fields.forEach((field) => {
+    if (field.wrapper) field.wrapper.classList.add("hidden");
+    if (field.label) field.label.textContent = "";
+    if (field.input) {
+      field.input.value = "";
+      field.input.placeholder = "";
+    }
+  });
+
+  if (checkManualBtn) checkManualBtn.classList.add("hidden");
+}
+
+function renderPathSteps() {
+  const task = getCurrentTask();
   if (!task) return;
 
-  applyMode(modeFromTask(task));
+  clearClassicManualFields();
+  const pathContainer = ensurePathContainer();
+  pathContainer.innerHTML = "";
 
-  if (task.type === "mixing" || task.type === "ratio") {
-    fields[0].input.value = task.high ?? "";
-    fields[1].input.value = task.low ?? "";
-    fields[2].input.value = task.target ?? "";
-    fields[3].input.value = task.total_ml ?? "";
-  } else if (task.type === "concentration") {
-    fields[0].input.value = task.strong_ml ?? "";
-    fields[1].input.value = task.strong_pct ?? "";
-    fields[2].input.value = task.water_ml ?? "";
-    fields[3].input.value = task.extra_ml ?? "";
-  } else if (task.type === "deckungsbeitrag") {
-    fields[0].input.value = task.umsatz ?? "";
-    fields[1].input.value = task.variable_kosten ?? "";
-  } else if (task.type === "wareneinsatzquote") {
-    fields[0].input.value = task.wareneinsatz ?? "";
-    fields[1].input.value = task.umsatz ?? "";
-  } else if (task.type === "warenrabatt") {
-    fields[0].input.value = task.preis1 ?? "";
-    fields[1].input.value = task.rabatt1 ?? "";
-    fields[2].input.value = task.preis2 ?? "";
-    fields[3].input.value = task.rabatt2 ?? "";
-  } else if (task.type === "preisberechnung") {
-    fields[0].input.value = task.stueckpreis ?? "";
-    fields[1].input.value = task.menge1 ?? "";
-    fields[2].input.value = task.rabatt1 ?? "";
-    fields[3].input.value = task.menge2 ?? "";
-    fields[4].input.value = task.rabatt2 ?? "";
-  } else if (task.type === "bezugskalkulation") {
-    fields[0].input.value = task.stueckpreis ?? "";
-    fields[1].input.value = task.menge ?? "";
-    fields[2].input.value = task.rabatt ?? "";
-    fields[3].input.value = task.skonto ?? "";
-    fields[4].input.value = task.bezugskosten ?? "";
-  } else if (task.type === "verkaufskalkulation") {
-    fields[0].input.value = task.listenpreis ?? "";
-    fields[1].input.value = task.rabatt ?? "";
-    fields[2].input.value = task.skonto ?? "";
-    fields[3].input.value = task.bezugskosten ?? "";
-    fields[4].input.value = task.handlungskosten ?? "";
-    fields[5].input.value = task.gewinn ?? "";
-    fields[6].input.value = task.mwst ?? "";
-  } else if (task.type === "umweltschutz") {
-    fields[0].input.value = task.rest_ml ?? "";
-    fields[1].input.value = task.tuben_pro_tag ?? "";
-    fields[2].input.value = task.arbeitstage_pro_monat ?? "";
-  } else if (task.type === "marketing_vormonat") {
-    fields[0].input.value = task.aktuelle_kunden ?? "";
-    fields[1].input.value = task.steigerung ?? "";
-  } else if (task.type === "marketing_umsatz") {
-    fields[0].input.value = task.kunden ?? "";
-    fields[1].input.value = task.umsatz_pro_kunde ?? "";
+  currentSteps.forEach((step, index) => {
+    const card = document.createElement("div");
+    card.className = `step-card ${step.solved ? "solved-step" : ""} ${!step.unlocked ? "locked-step" : ""}`;
+    card.style.marginBottom = "12px";
+
+    const feedbackText = step.feedback
+      ? `<div class="path-feedback" style="margin-top:8px;">${step.feedback}</div>`
+      : `<div class="path-feedback" style="margin-top:8px;color:#6b7280;">Noch keine Prüfung.</div>`;
+
+    const hintText = step.hintVisible
+      ? `<div class="path-hint" style="margin-top:8px;">💡 Tipp: ${step.hint}</div>`
+      : "";
+
+    const resultText = step.solved
+      ? `<div class="path-result" style="margin-top:8px;">Ergebnis: ${step.resultText}</div>`
+      : "";
+
+    card.innerHTML = `
+      <p class="eyebrow">Schritt ${index + 1} von ${currentSteps.length}</p>
+      <h3 style="margin:0 0 6px;">${step.label}</h3>
+      <p class="section-text" style="margin-bottom:12px;">${step.prompt}</p>
+
+      <label class="field">
+        <span>Rechenoperation</span>
+        <input
+          id="pathInput${index}"
+          data-step-index="${index}"
+          type="text"
+          inputmode="text"
+          autocomplete="off"
+          placeholder="${step.placeholder || ""}"
+          value="${step.userInput || ""}"
+          ${!step.unlocked || step.solved ? "disabled" : ""}
+        />
+      </label>
+
+      <div class="actions" style="margin-top:10px;">
+        <button type="button" data-action="check" data-step="${index}" ${!step.unlocked || step.solved ? "disabled" : ""}>Prüfen</button>
+        <button type="button" class="secondary" data-action="hint" data-step="${index}" ${!step.unlocked ? "disabled" : ""}>Tipp</button>
+        ${step.solved ? `<button type="button" class="secondary" data-action="edit" data-step="${index}">Ändern</button>` : ""}
+      </div>
+
+      ${hintText}
+      ${resultText}
+      ${feedbackText}
+    `;
+
+    pathContainer.appendChild(card);
+  });
+
+  pathContainer.querySelectorAll('input[data-step-index]').forEach((input) => {
+    input.addEventListener("focus", () => {
+      activePathInput = input;
+    });
+
+    input.addEventListener("input", (event) => {
+      const idx = Number(event.target.dataset.stepIndex);
+      if (!Number.isNaN(idx) && currentSteps[idx]) {
+        currentSteps[idx].userInput = event.target.value;
+      }
+    });
+  });
+
+  pathContainer.querySelectorAll("button[data-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const action = button.dataset.action;
+      const idx = Number(button.dataset.step);
+
+      if (action === "check") checkPathStep(idx);
+      if (action === "hint") togglePathHint(idx);
+      if (action === "edit") enablePathStepEdit(idx);
+    });
+  });
+
+  const firstActiveInput = pathContainer.querySelector('input[data-step-index]:not([disabled])');
+  if (firstActiveInput && !activePathInput) {
+    activePathInput = firstActiveInput;
+  }
+
+  manualFeedback.textContent = "Trage die Rechenoperation pro Schritt ein. Nach richtiger Lösung wird der nächste Schritt freigeschaltet.";
+  updateProgressInfo();
+}
+
+function checkPathStep(index) {
+  const step = currentSteps[index];
+  if (!step || !step.unlocked) return;
+
+  try {
+    const inputValue = parseNum(step.userInput);
+
+    if (nearlyEqual(inputValue, step.expected)) {
+      step.solved = true;
+      step.feedback = `✅ Richtig: ${step.userInput} = ${formatNumber(inputValue)}`;
+
+      const nextStep = currentSteps[index + 1];
+      if (nextStep) nextStep.unlocked = true;
+    } else {
+      const task = getCurrentTask();
+      step.feedback = getSmartErrorFeedback(task, index, inputValue);
+    }
+  } catch (err) {
+    step.feedback = `FEHLER: ${err.message}`;
+  }
+
+  activePathInput = document.getElementById(`pathInput${index}`);
+  renderPathSteps();
+}
+
+function togglePathHint(index) {
+  const step = currentSteps[index];
+  if (!step || !step.unlocked) return;
+  step.hintVisible = !step.hintVisible;
+  renderPathSteps();
+}
+
+function enablePathStepEdit(index) {
+  const step = currentSteps[index];
+  if (!step) return;
+
+  step.solved = false;
+  step.feedback = "Bearbeite den Schritt erneut.";
+  step.unlocked = true;
+
+  for (let i = index + 1; i < currentSteps.length; i += 1) {
+    currentSteps[i].unlocked = false;
+    currentSteps[i].solved = false;
+    currentSteps[i].hintVisible = false;
+    currentSteps[i].feedback = "";
+  }
+
+  activePathInput = null;
+  renderPathSteps();
+
+  const input = document.getElementById(`pathInput${index}`);
+  if (input) {
+    input.focus();
+    activePathInput = input;
   }
 }
 
+function resetPathMode() {
+  const task = getCurrentTask();
+  if (!task) return;
+  activePathInput = null;
+  initializeCurrentSteps(task);
+  renderPathSteps();
+}
+
 // =====================
-// AUFGABEN LADEN
+// EINZELSCHRITT-MODUS
 // =====================
-async function initTasks() {
+function renderCurrentStep() {
+  const step = currentSteps[currentStepIndex];
+
+  if (!step) {
+    stepCounter.textContent = "Fertig";
+    stepQuestion.textContent = "✅ Aufgabe vollständig bearbeitet";
+    stepHint.textContent = "";
+    stepInput.value = "";
+    stepFeedback.textContent = "Alle Schritte wurden richtig bearbeitet.";
+    updateProgressInfo();
+    return;
+  }
+
+  stepCounter.textContent = `Schritt ${currentStepIndex + 1} von ${currentSteps.length}`;
+  stepQuestion.textContent = step.question;
+  stepHint.textContent = hintVisible ? `Tipp: ${step.hint}` : "Hier erscheint bei Bedarf ein Tipp.";
+  stepInput.value = step.userInput || "";
+  stepFeedback.textContent = "Noch keine Prüfung.";
+  updateProgressInfo();
+}
+
+function checkCurrentStep() {
+  const step = currentSteps[currentStepIndex];
+  if (!step) return;
+
   try {
-    const response = await fetch("task_templates.json");
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
+    const input = parseNum(stepInput.value);
 
-    const data = await response.json();
-    TASK_DATA = data;
-
-    const categories = Object.keys(data.exam_tasks || {});
-    taskCategory.innerHTML = "";
-
-    categories.forEach((key) => {
-      const option = document.createElement("option");
-      option.value = key;
-      option.textContent = formatCategoryName(key);
-      taskCategory.appendChild(option);
-    });
-
-    if (categories.length > 0) {
-      updateTaskList();
+    if (nearlyEqual(input, step.expected)) {
+      step.userInput = stepInput.value;
+      step.solved = true;
+      stepFeedback.textContent = `✅ Richtig: ${formatNumber(input)}`;
+    } else {
+      stepFeedback.textContent = getSmartErrorFeedback(getCurrentTask(), currentStepIndex, input);
     }
   } catch (err) {
-    console.error("Fehler beim Laden der Aufgaben:", err);
-    taskMode.textContent = "Fehler";
-    taskTitle.textContent = "Aufgaben konnten nicht geladen werden";
-    taskDescription.textContent = String(err.message || err);
-    taskPrompt.textContent = "Prüfe Pfad und JSON-Datei.";
+    stepFeedback.textContent = `FEHLER: ${err.message}`;
   }
+
+  updateProgressInfo();
+}
+
+function nextStep() {
+  const step = currentSteps[currentStepIndex];
+  if (!step) return;
+
+  try {
+    const input = parseNum(stepInput.value);
+
+    if (!nearlyEqual(input, step.expected)) {
+      stepFeedback.textContent = "❌ Bitte erst den aktuellen Schritt richtig lösen.";
+      return;
+    }
+
+    step.userInput = stepInput.value;
+    step.solved = true;
+    currentStepIndex += 1;
+    hintVisible = false;
+    renderCurrentStep();
+  } catch (err) {
+    stepFeedback.textContent = `FEHLER: ${err.message}`;
+  }
+}
+
+function toggleHint() {
+  hintVisible = !hintVisible;
+  renderCurrentStep();
+}
+
+// =====================
+// LÖSUNG
+// =====================
+function buildSolutionText(task) {
+  if (!task) return "Noch keine Musterlösung angezeigt.";
+
+  const steps = buildSteps(task);
+  if (!steps.length) return "Für diese Aufgabe ist noch keine Musterlösung hinterlegt.";
+
+  const resultLines = [];
+  if (task.type === "anteile") {
+    resultLines.push(
+      `${task.part1} Teile = ${formatNumber(steps[2].expected)} ml`,
+      `${task.part2} Teile = ${formatNumber(steps[3].expected)} ml`
+    );
+  } else if (task.type === "mixing") {
+    resultLines.push(
+      `Starke Lösung: ${formatNumber(steps[6].expected)} ml`,
+      `Schwache Lösung: ${formatNumber(steps[7].expected)} ml`
+    );
+  } else if (task.type === "ratio") {
+    resultLines.push(
+      `Verhältnis stark : schwach = ${formatNumber(steps[2].expected)} : ${formatNumber(steps[3].expected)}`
+    );
+  } else if (task.type === "concentration") {
+    resultLines.push(
+      `Endkonzentration: ${formatNumber(steps[2].expected)} %`
+    );
+  }
+
+  const pathLines = steps.map((step, index) => {
+    return `${index + 1}. ${step.label}: ${step.hint} = ${step.resultText}`;
+  });
+
+  return [
+    "ERGEBNIS:",
+    ...resultLines,
+    "",
+    "--------------------------------",
+    "",
+    "RECHENWEG:",
+    ...pathLines
+  ].join("\n");
+}
+
+function showSolution() {
+  solutionOutput.textContent = buildSolutionText(getCurrentTask());
+  setWorkMode("solution");
+  updateProgressInfo();
+}
+
+// =====================
+// TASK LOADING
+// =====================
+async function initTasks() {
+  const response = await fetch(`task_templates.json?v=${Date.now()}`);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  TASK_DATA = data;
+
+  const allowedCategories = ["anteile", "mixing", "concentration"];
+  const categories = Object.keys(data.exam_tasks || {}).filter((key) => allowedCategories.includes(key));
+
+  taskCategory.innerHTML = "";
+
+  categories.forEach((key) => {
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = formatCategoryName(key);
+    taskCategory.appendChild(option);
+  });
+
+  if (categories.length === 0) {
+    throw new Error("Keine unterstützten Aufgaben gefunden.");
+  }
+
+  updateTaskList();
 }
 
 function updateTaskList() {
@@ -347,10 +887,8 @@ function showTask() {
     taskMode.textContent = "Keine Aufgabe";
     taskTitle.textContent = "Noch keine Aufgabe gewählt";
     taskDescription.textContent = "Wähle oben eine Aufgabe aus.";
-    taskPrompt.textContent = "Wähle eine Aufgabe aus, übernimm die Werte und rechne dann selbst.";
-    taskSolution.classList.add("hidden");
-    toggleSolutionBtn.textContent = "Musterlösung anzeigen";
-    taskSolutionContent.textContent = "Noch keine Musterlösung geladen.";
+    taskPrompt.textContent = "Wähle eine Aufgabe aus.";
+    statusInfo.textContent = "";
     return;
   }
 
@@ -359,630 +897,61 @@ function showTask() {
   taskDescription.textContent = task.description || "";
   taskPrompt.textContent = task.prompt || "";
 
-  loadTaskIntoCalculator(task);
+  initializeCurrentSteps(task);
+  currentStepIndex = 0;
+  hintVisible = false;
+  activePathInput = null;
 
-  taskSolution.classList.add("hidden");
-  toggleSolutionBtn.textContent = "Musterlösung anzeigen";
-  taskSolutionContent.textContent = "Noch keine Musterlösung geladen.";
-}
-
-// =====================
-// RECHENLOGIK
-// =====================
-function solveMixing(strong, weak, target, totalMl = null) {
-  if (weak > strong) {
-    throw new Error("Die schwache Lösung darf nicht größer als die starke sein.");
-  }
-  if (!(weak <= target && target <= strong)) {
-    throw new Error("Die Zielkonzentration muss zwischen starker und schwacher Lösung liegen.");
-  }
-
-  const diffStrong = strong - target;
-  const diffWeak = target - weak;
-  const [ratioStrong, ratioWeak] = normalizeRatio(diffWeak, diffStrong);
-
-  const steps = [
-    "Mischkreuz:",
-    `Starke Lösung: ${strong}%`,
-    `Schwache Lösung: ${weak}%`,
-    `Zielkonzentration: ${target}%`,
-    "",
-    "1. Starke Lösung minus Ziel:",
-    `   ${strong} - ${target} = ${diffStrong}`,
-    "",
-    "2. Ziel minus schwache Lösung:",
-    `   ${target} - ${weak} = ${diffWeak}`,
-    "",
-    "3. Anteile zuordnen KREUZEN: Anteil stark = Ziel minus SCWACH - Anteil schwach = STARK minus Ziel",
-    `   Anteil stark = ${diffWeak}`,
-    `   Anteil schwach = ${diffStrong}`,
-    "",
-    "4. Verhältnis bilden:",
-    `   ${diffWeak} : ${diffStrong} = ${ratioStrong} : ${ratioWeak}`
-  ];
-
-  if (totalMl == null) {
-    return {
-      fullOutput: [
-        "ERGEBNIS:",
-        `Verhältnis: ${ratioStrong} : ${ratioWeak}`,
-        "",
-        "--------------------------------",
-        "",
-        "RECHENWEG:",
-        ...steps,
-        "",
-        "5. Keine Gesamtmenge angegeben.",
-        "   Deshalb wird nur das Verhältnis berechnet."
-      ].join("\n")
-    };
-  }
-
-  const parts = ratioStrong + ratioWeak;
-  const onePart = totalMl / parts;
-  const strongMl = Number((onePart * ratioStrong).toFixed(1));
-  const weakMl = Number((onePart * ratioWeak).toFixed(1));
-
-  return {
-    fullOutput: [
-      "ERGEBNIS:",
-      `Starke Lösung (${strong}%): ${strongMl.toFixed(1)} ml`,
-      `Schwache Lösung (${weak}%): ${weakMl.toFixed(1)} ml`,
-      `Verhältnis: ${ratioStrong} : ${ratioWeak}`,
-      `Gesamtmenge: ${totalMl} ml`,
-      "",
-      "--------------------------------",
-      "",
-      "RECHENWEG:",
-      ...steps,
-      "",
-      "5. Gesamtteile berechnen:",
-      `   ${ratioStrong} + ${ratioWeak} = ${parts} Teile`,
-      "",
-      "6. Einen Teil berechnen:",
-      `   ${totalMl} ml ÷ ${parts} = ${onePart.toFixed(2)} ml`,
-      "",
-      "7. Mengen berechnen:",
-      `   Starke Lösung: ${ratioStrong} × ${onePart.toFixed(2)} = ${strongMl.toFixed(1)} ml`,
-      `   Schwache Lösung: ${ratioWeak} × ${onePart.toFixed(2)} = ${weakMl.toFixed(1)} ml`,
-      "",
-      "8. Kontrolle:",
-      `   ${strongMl.toFixed(1)} ml + ${weakMl.toFixed(1)} ml = ${(strongMl + weakMl).toFixed(1)} ml`
-    ].join("\n")
-  };
-}
-
-function solveConcentration(strongMl, strongPct, waterMl, extraMl) {
-  const active = strongMl * strongPct / 100;
-  const total = strongMl + waterMl + extraMl;
-  const resultPct = active / total * 100;
-
-  return {
-    fullOutput: [
-      "ERGEBNIS:",
-      `Endkonzentration: ${resultPct.toFixed(2)} %`,
-      "",
-      "--------------------------------",
-      "",
-      "RECHENWEG:",
-      "Gegeben:",
-      `   Entwickler: ${strongMl} ml mit ${strongPct} %`,
-      `   Wasser: ${waterMl} ml (0 %)`,
-      `   Farbcreme: ${extraMl} ml (0 %)`,
-      "",
-      "1. Wirkstoffmenge im Entwickler berechnen:",
-      `   ${strongMl} × ${strongPct} / 100 = ${active.toFixed(2)} ml`,
-      "",
-      "2. Gesamtmenge berechnen:",
-      `   ${strongMl} + ${waterMl} + ${extraMl} = ${total} ml`,
-      "",
-      "3. Endkonzentration berechnen:",
-      `   ${active.toFixed(2)} / ${total} × 100 = ${resultPct.toFixed(2)} %`
-    ].join("\n")
-  };
-}
-
-function solveDeckungsbeitrag(umsatz, variableKosten) {
-  const db = umsatz - variableKosten;
-  return {
-    fullOutput: [
-      "ERGEBNIS:",
-      `Deckungsbeitrag: ${db.toFixed(2)} €`,
-      "",
-      "--------------------------------",
-      "",
-      "RECHENWEG:",
-      "1. Formel:",
-      "   Deckungsbeitrag = Umsatz - variable Kosten",
-      "",
-      "2. Werte einsetzen:",
-      `   ${umsatz} - ${variableKosten} = ${db.toFixed(2)}`
-    ].join("\n")
-  };
-}
-
-function solveWareneinsatzquote(wareneinsatz, umsatz) {
-  if (umsatz === 0) {
-    throw new Error("Der Umsatz darf nicht 0 sein.");
-  }
-
-  const quote = wareneinsatz / umsatz * 100;
-  return {
-    fullOutput: [
-      "ERGEBNIS:",
-      `Wareneinsatzquote: ${quote.toFixed(2)} %`,
-      "",
-      "--------------------------------",
-      "",
-      "RECHENWEG:",
-      "1. Formel:",
-      "   Wareneinsatzquote = Wareneinsatz / Umsatz × 100",
-      "",
-      "2. Werte einsetzen:",
-      `   ${wareneinsatz} / ${umsatz} × 100 = ${quote.toFixed(2)} %`
-    ].join("\n")
-  };
-}
-
-function solveWarenrabatt(preis1, rabatt1, preis2, rabatt2) {
-  const rabattBetrag1 = preis1 * rabatt1 / 100;
-  const rabattBetrag2 = preis2 * rabatt2 / 100;
-  const zahlbetrag1 = preis1 - rabattBetrag1;
-  const zahlbetrag2 = preis2 - rabattBetrag2;
-  const gesamt = zahlbetrag1 + zahlbetrag2;
-
-  return {
-    fullOutput: [
-      "ERGEBNIS:",
-      `Zahlbetrag Artikel 1: ${zahlbetrag1.toFixed(2)} €`,
-      `Zahlbetrag Artikel 2: ${zahlbetrag2.toFixed(2)} €`,
-      `Gesamtbetrag: ${gesamt.toFixed(2)} €`,
-      "",
-      "--------------------------------",
-      "",
-      "RECHENWEG:",
-      "1. Rabatt für Artikel 1 berechnen:",
-      `   ${preis1} × ${rabatt1} / 100 = ${rabattBetrag1.toFixed(2)} €`,
-      "",
-      "2. Zahlbetrag Artikel 1:",
-      `   ${preis1} - ${rabattBetrag1.toFixed(2)} = ${zahlbetrag1.toFixed(2)} €`,
-      "",
-      "3. Rabatt für Artikel 2 berechnen:",
-      `   ${preis2} × ${rabatt2} / 100 = ${rabattBetrag2.toFixed(2)} €`,
-      "",
-      "4. Zahlbetrag Artikel 2:",
-      `   ${preis2} - ${rabattBetrag2.toFixed(2)} = ${zahlbetrag2.toFixed(2)} €`,
-      "",
-      "5. Gesamtbetrag:",
-      `   ${zahlbetrag1.toFixed(2)} + ${zahlbetrag2.toFixed(2)} = ${gesamt.toFixed(2)} €`
-    ].join("\n")
-  };
-}
-
-function solvePreisberechnung(stueckpreis, menge1, rabatt1, menge2, rabatt2) {
-  const listenpreis1 = stueckpreis * menge1;
-  const rabattBetrag1 = listenpreis1 * rabatt1 / 100;
-  const endpreis1 = listenpreis1 - rabattBetrag1;
-
-  const listenpreis2 = stueckpreis * menge2;
-  const rabattBetrag2 = listenpreis2 * rabatt2 / 100;
-  const endpreis2 = listenpreis2 - rabattBetrag2;
-
-  return {
-    fullOutput: [
-      "ERGEBNIS:",
-      `Fall 1 Gesamtpreis: ${endpreis1.toFixed(2)} €`,
-      `Fall 2 Gesamtpreis: ${endpreis2.toFixed(2)} €`,
-      "",
-      "--------------------------------",
-      "",
-      "RECHENWEG:",
-      "Fall 1:",
-      `1. Listenpreis: ${stueckpreis} × ${menge1} = ${listenpreis1.toFixed(2)} €`,
-      `2. Rabatt: ${listenpreis1.toFixed(2)} × ${rabatt1} / 100 = ${rabattBetrag1.toFixed(2)} €`,
-      `3. Endpreis: ${listenpreis1.toFixed(2)} - ${rabattBetrag1.toFixed(2)} = ${endpreis1.toFixed(2)} €`,
-      "",
-      "Fall 2:",
-      `1. Listenpreis: ${stueckpreis} × ${menge2} = ${listenpreis2.toFixed(2)} €`,
-      `2. Rabatt: ${listenpreis2.toFixed(2)} × ${rabatt2} / 100 = ${rabattBetrag2.toFixed(2)} €`,
-      `3. Endpreis: ${listenpreis2.toFixed(2)} - ${rabattBetrag2.toFixed(2)} = ${endpreis2.toFixed(2)} €`
-    ].join("\n")
-  };
-}
-
-function solveBezugskalkulation(stueckpreis, menge, rabatt, skonto, bezugskosten) {
-  const listenpreis = stueckpreis * menge;
-  const zieleinkaufspreis = listenpreis * (1 - rabatt / 100);
-  const bareinkaufspreis = zieleinkaufspreis * (1 - skonto / 100);
-  const bezugspreis = bareinkaufspreis + bezugskosten;
-  const jeEinheit = bezugspreis / menge;
-
-  return {
-    fullOutput: [
-      "ERGEBNIS:",
-      `Gesamtbezugspreis: ${bezugspreis.toFixed(2)} €`,
-      `Bezugspreis je Einheit: ${jeEinheit.toFixed(2)} €`,
-      "",
-      "--------------------------------",
-      "",
-      "RECHENWEG:",
-      `1. Listenpreis: ${stueckpreis} × ${menge} = ${listenpreis.toFixed(2)} €`,
-      `2. Zieleinkaufspreis: ${listenpreis.toFixed(2)} × (1 - ${rabatt}/100) = ${zieleinkaufspreis.toFixed(2)} €`,
-      `3. Bareinkaufspreis: ${zieleinkaufspreis.toFixed(2)} × (1 - ${skonto}/100) = ${bareinkaufspreis.toFixed(2)} €`,
-      `4. Bezugspreis: ${bareinkaufspreis.toFixed(2)} + ${bezugskosten} = ${bezugspreis.toFixed(2)} €`,
-      `5. Bezugspreis je Einheit: ${bezugspreis.toFixed(2)} / ${menge} = ${jeEinheit.toFixed(2)} €`
-    ].join("\n")
-  };
-}
-
-function solveVerkaufskalkulation(listenpreis, rabatt, skonto, bezugskosten, handlungskosten, gewinn, mwst) {
-  const zieleinkauf = listenpreis * (1 - rabatt / 100);
-  const bareinkauf = zieleinkauf * (1 - skonto / 100);
-  const einstandspreis = bareinkauf + bezugskosten;
-  const selbstkosten = einstandspreis * (1 + handlungskosten / 100);
-  const barverkaufspreis = selbstkosten * (1 + gewinn / 100);
-  const bruttoverkaufspreis = barverkaufspreis * (1 + mwst / 100);
-
-  return {
-    fullOutput: [
-      "ERGEBNIS:",
-      `Bruttoverkaufspreis: ${bruttoverkaufspreis.toFixed(2)} €`,
-      "",
-      "--------------------------------",
-      "",
-      "RECHENWEG:",
-      `1. Zieleinkaufspreis: ${listenpreis} × (1 - ${rabatt}/100) = ${zieleinkauf.toFixed(2)} €`,
-      `2. Bareinkaufspreis: ${zieleinkauf.toFixed(2)} × (1 - ${skonto}/100) = ${bareinkauf.toFixed(2)} €`,
-      `3. Einstandspreis: ${bareinkauf.toFixed(2)} + ${bezugskosten} = ${einstandspreis.toFixed(2)} €`,
-      `4. Selbstkosten: ${einstandspreis.toFixed(2)} × (1 + ${handlungskosten}/100) = ${selbstkosten.toFixed(2)} €`,
-      `5. Barverkaufspreis: ${selbstkosten.toFixed(2)} × (1 + ${gewinn}/100) = ${barverkaufspreis.toFixed(2)} €`,
-      `6. Bruttoverkaufspreis: ${barverkaufspreis.toFixed(2)} × (1 + ${mwst}/100) = ${bruttoverkaufspreis.toFixed(2)} €`
-    ].join("\n")
-  };
-}
-
-function solveUmweltschutz(restMl, tubenProTag, arbeitstageProMonat) {
-  const verlustProTag = restMl * tubenProTag;
-  const verlustProMonat = verlustProTag * arbeitstageProMonat;
-  const verlustProJahr = verlustProMonat * 12;
-
-  return {
-    fullOutput: [
-      "ERGEBNIS:",
-      `Farbverlust pro Tag: ${verlustProTag.toFixed(2)} ml`,
-      `Farbverlust pro Monat: ${verlustProMonat.toFixed(2)} ml`,
-      `Farbverlust pro Jahr: ${verlustProJahr.toFixed(2)} ml`,
-      "",
-      "--------------------------------",
-      "",
-      "RECHENWEG:",
-      `1. Verlust pro Tag: ${restMl} × ${tubenProTag} = ${verlustProTag.toFixed(2)} ml`,
-      `2. Verlust pro Monat: ${verlustProTag.toFixed(2)} × ${arbeitstageProMonat} = ${verlustProMonat.toFixed(2)} ml`,
-      `3. Verlust pro Jahr: ${verlustProMonat.toFixed(2)} × 12 = ${verlustProJahr.toFixed(2)} ml`
-    ].join("\n")
-  };
-}
-
-function solveMarketingVormonat(aktuelleKunden, steigerung) {
-  const vormonat = aktuelleKunden / (1 + steigerung / 100);
-
-  return {
-    fullOutput: [
-      "ERGEBNIS:",
-      `Kundenzahl im Vormonat: ${vormonat.toFixed(0)}`,
-      "",
-      "--------------------------------",
-      "",
-      "RECHENWEG:",
-      `1. Formel: Vormonat = aktuelle Kunden / (1 + Steigerung/100)`,
-      `2. Einsetzen: ${aktuelleKunden} / (1 + ${steigerung}/100) = ${vormonat.toFixed(2)}`,
-      `3. Gerundet: ${vormonat.toFixed(0)}`
-    ].join("\n")
-  };
-}
-
-function solveMarketingUmsatz(kunden, umsatzProKunde) {
-  const gesamtumsatz = kunden * umsatzProKunde;
-
-  return {
-    fullOutput: [
-      "ERGEBNIS:",
-      `Gesamtumsatz: ${gesamtumsatz.toFixed(2)} €`,
-      "",
-      "--------------------------------",
-      "",
-      "RECHENWEG:",
-      `1. Formel: Gesamtumsatz = Kunden × Umsatz pro Kunde`,
-      `2. Einsetzen: ${kunden} × ${umsatzProKunde} = ${gesamtumsatz.toFixed(2)} €`
-    ].join("\n")
-  };
-}
-
-// =====================
-// BERECHNEN
-// =====================
-function calculate() {
-  try {
-    const mode = calcType.value;
-
-    if (mode === "Mischungsrechner") {
-      output.textContent = solveMixing(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value),
-        parseNum(fields[2].input.value),
-        parseNum(fields[3].input.value)
-      ).fullOutput;
-    } else if (mode === "Verhältnis") {
-      output.textContent = solveMixing(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value),
-        parseNum(fields[2].input.value),
-        null
-      ).fullOutput;
-    } else if (mode === "Konzentration") {
-      output.textContent = solveConcentration(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value),
-        parseNum(fields[2].input.value),
-        parseNum(fields[3].input.value)
-      ).fullOutput;
-    } else if (mode === "Deckungsbeitrag") {
-      output.textContent = solveDeckungsbeitrag(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value)
-      ).fullOutput;
-    } else if (mode === "Wareneinsatzquote") {
-      output.textContent = solveWareneinsatzquote(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value)
-      ).fullOutput;
-    } else if (mode === "Warenrabatt") {
-      output.textContent = solveWarenrabatt(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value),
-        parseNum(fields[2].input.value),
-        parseNum(fields[3].input.value)
-      ).fullOutput;
-    } else if (mode === "Preisberechnung") {
-      output.textContent = solvePreisberechnung(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value),
-        parseNum(fields[2].input.value),
-        parseNum(fields[3].input.value),
-        parseNum(fields[4].input.value)
-      ).fullOutput;
-    } else if (mode === "Bezugskalkulation") {
-      output.textContent = solveBezugskalkulation(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value),
-        parseNum(fields[2].input.value),
-        parseNum(fields[3].input.value),
-        parseNum(fields[4].input.value)
-      ).fullOutput;
-    } else if (mode === "Verkaufskalkulation") {
-      output.textContent = solveVerkaufskalkulation(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value),
-        parseNum(fields[2].input.value),
-        parseNum(fields[3].input.value),
-        parseNum(fields[4].input.value),
-        parseNum(fields[5].input.value),
-        parseNum(fields[6].input.value)
-      ).fullOutput;
-    } else if (mode === "Umweltschutz") {
-      output.textContent = solveUmweltschutz(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value),
-        parseNum(fields[2].input.value)
-      ).fullOutput;
-    } else if (mode === "Marketing Vormonat") {
-      output.textContent = solveMarketingVormonat(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value)
-      ).fullOutput;
-    } else if (mode === "Marketing Umsatz") {
-      output.textContent = solveMarketingUmsatz(
-        parseNum(fields[0].input.value),
-        parseNum(fields[1].input.value)
-      ).fullOutput;
-    }
-  } catch (err) {
-    output.textContent = `FEHLER:\n${err.message}`;
-  }
-}
-
-// =====================
-// MUSTERLÖSUNG
-// =====================
-function generateSolution() {
-  const task = getCurrentTask();
-
-  if (!task) {
-    taskSolutionContent.textContent = "Noch keine Musterlösung geladen.";
-    return;
-  }
-
-  try {
-    if (task.type === "mixing") {
-      taskSolutionContent.textContent = solveMixing(
-        task.high,
-        task.low,
-        task.target,
-        task.total_ml != null ? task.total_ml : null
-      ).fullOutput;
-    } else if (task.type === "concentration") {
-      taskSolutionContent.textContent = solveConcentration(
-        task.strong_ml,
-        task.strong_pct,
-        task.water_ml,
-        task.extra_ml
-      ).fullOutput;
-    } else if (task.type === "deckungsbeitrag") {
-      taskSolutionContent.textContent = solveDeckungsbeitrag(
-        task.umsatz,
-        task.variable_kosten
-      ).fullOutput;
-    } else if (task.type === "wareneinsatzquote") {
-      taskSolutionContent.textContent = solveWareneinsatzquote(
-        task.wareneinsatz,
-        task.umsatz
-      ).fullOutput;
-    } else if (task.type === "warenrabatt") {
-      taskSolutionContent.textContent = solveWarenrabatt(
-        task.preis1,
-        task.rabatt1,
-        task.preis2,
-        task.rabatt2
-      ).fullOutput;
-    } else if (task.type === "preisberechnung") {
-      taskSolutionContent.textContent = solvePreisberechnung(
-        task.stueckpreis,
-        task.menge1,
-        task.rabatt1,
-        task.menge2,
-        task.rabatt2
-      ).fullOutput;
-    } else if (task.type === "bezugskalkulation") {
-      taskSolutionContent.textContent = solveBezugskalkulation(
-        task.stueckpreis,
-        task.menge,
-        task.rabatt,
-        task.skonto,
-        task.bezugskosten
-      ).fullOutput;
-    } else if (task.type === "verkaufskalkulation") {
-      taskSolutionContent.textContent = solveVerkaufskalkulation(
-        task.listenpreis,
-        task.rabatt,
-        task.skonto,
-        task.bezugskosten,
-        task.handlungskosten,
-        task.gewinn,
-        task.mwst
-      ).fullOutput;
-    } else if (task.type === "umweltschutz") {
-      taskSolutionContent.textContent = solveUmweltschutz(
-        task.rest_ml,
-        task.tuben_pro_tag,
-        task.arbeitstage_pro_monat
-      ).fullOutput;
-    } else if (task.type === "marketing_vormonat") {
-      taskSolutionContent.textContent = solveMarketingVormonat(
-        task.aktuelle_kunden,
-        task.steigerung
-      ).fullOutput;
-    } else if (task.type === "marketing_umsatz") {
-      taskSolutionContent.textContent = solveMarketingUmsatz(
-        task.kunden,
-        task.umsatz_pro_kunde
-      ).fullOutput;
-    } else {
-      taskSolutionContent.textContent = "Für diese Aufgabe ist noch keine Musterlösung hinterlegt.";
-    }
-  } catch (err) {
-    taskSolutionContent.textContent = `FEHLER:\n${err.message}`;
-  }
-}
-
-// =====================
-// BEISPIELE
-// =====================
-function loadExample() {
-  applyMode(calcType.value);
-
-  if (calcType.value === "Mischungsrechner") {
-    fields[0].input.value = "12";
-    fields[1].input.value = "4";
-    fields[2].input.value = "6";
-    fields[3].input.value = "40";
-  } else if (calcType.value === "Verhältnis") {
-    fields[0].input.value = "12";
-    fields[1].input.value = "3";
-    fields[2].input.value = "6";
-  } else if (calcType.value === "Konzentration") {
-    fields[0].input.value = "40";
-    fields[1].input.value = "12";
-    fields[2].input.value = "20";
-    fields[3].input.value = "60";
-  } else if (calcType.value === "Deckungsbeitrag") {
-    fields[0].input.value = "20";
-    fields[1].input.value = "6";
-  } else if (calcType.value === "Wareneinsatzquote") {
-    fields[0].input.value = "6";
-    fields[1].input.value = "20";
-  } else if (calcType.value === "Warenrabatt") {
-    fields[0].input.value = "110";
-    fields[1].input.value = "18";
-    fields[2].input.value = "9.8";
-    fields[3].input.value = "7";
-  } else if (calcType.value === "Preisberechnung") {
-    fields[0].input.value = "7.5";
-    fields[1].input.value = "50";
-    fields[2].input.value = "3";
-    fields[3].input.value = "100";
-    fields[4].input.value = "10";
-  } else if (calcType.value === "Bezugskalkulation") {
-    fields[0].input.value = "2.1";
-    fields[1].input.value = "50";
-    fields[2].input.value = "3";
-    fields[3].input.value = "2";
-    fields[4].input.value = "7.5";
-  } else if (calcType.value === "Verkaufskalkulation") {
-    fields[0].input.value = "5.8";
-    fields[1].input.value = "8.5";
-    fields[2].input.value = "3";
-    fields[3].input.value = "4.7";
-    fields[4].input.value = "30";
-    fields[5].input.value = "35";
-    fields[6].input.value = "19";
-  } else if (calcType.value === "Umweltschutz") {
-    fields[0].input.value = "8";
-    fields[1].input.value = "5";
-    fields[2].input.value = "20";
-  } else if (calcType.value === "Marketing Vormonat") {
-    fields[0].input.value = "876";
-    fields[1].input.value = "20";
-  } else if (calcType.value === "Marketing Umsatz") {
-    fields[0].input.value = "876";
-    fields[1].input.value = "29.5";
-  }
+  renderCurrentStep();
+  renderPathSteps();
+  solutionOutput.textContent = "Noch keine Musterlösung angezeigt.";
+  setWorkMode(currentWorkMode);
 }
 
 // =====================
 // EVENTS
 // =====================
-calcType.addEventListener("change", () => applyMode(calcType.value));
 taskCategory.addEventListener("change", updateTaskList);
 taskSelect.addEventListener("change", showTask);
 
-loadTaskBtn.addEventListener("click", () => {
-  const task = getCurrentTask();
-  loadTaskIntoCalculator(task);
+manualModeBtn.addEventListener("click", () => {
+  initializeCurrentSteps(getCurrentTask());
+  activePathInput = null;
+  renderPathSteps();
+  setWorkMode("manual");
 });
 
-toggleSolutionBtn.addEventListener("click", () => {
-  const isHidden = taskSolution.classList.contains("hidden");
-  taskSolution.classList.toggle("hidden");
-
-  if (isHidden) {
-    generateSolution();
-    toggleSolutionBtn.textContent = "Musterlösung verbergen";
-  } else {
-    toggleSolutionBtn.textContent = "Musterlösung anzeigen";
-  }
+stepModeBtn.addEventListener("click", () => {
+  initializeCurrentSteps(getCurrentTask());
+  currentStepIndex = 0;
+  hintVisible = false;
+  renderCurrentStep();
+  setWorkMode("step");
 });
 
-exampleBtn.addEventListener("click", loadExample);
+showSolutionBtn.addEventListener("click", showSolution);
 
-clearBtn.addEventListener("click", () => {
-  applyMode(calcType.value);
+if (checkManualBtn) {
+  checkManualBtn.classList.add("hidden");
+}
+
+clearManualBtn.addEventListener("click", () => {
+  resetPathMode();
 });
 
-calcBtn.addEventListener("click", calculate);
+checkStepBtn.addEventListener("click", checkCurrentStep);
+showHintBtn.addEventListener("click", toggleHint);
+nextStepBtn.addEventListener("click", nextStep);
 
 // =====================
 // START
 // =====================
-initCalcTypes();
-applyMode("Mischungsrechner");
-initTasks();
+(async function startApp() {
+  try {
+    setupOperatorBars();
+    await initTasks();
+    setWorkMode("manual");
+  } catch (err) {
+    statusInfo.textContent = `✖ Fehler beim Laden: ${err.message}`;
+  }
+})();

@@ -10,14 +10,14 @@
   <main class="app-shell">
     <header class="hero">
       <h1>Friseur-Rechner Berufstheorie II</h1>
-      <p>Mischung • Verhältnis • Konzentration • Deckungsbeitrag • Wareneinsatzquote</p>
+      <p>Lernen • Schrittweise rechnen • Musterlösung prüfen</p>
     </header>
 
     <section class="panel trainer-panel">
       <div class="section-header">
         <div>
-          <h2>Prüfungsaufgaben</h2>
-          <p class="section-text">Wähle eine Aufgabe, lies den Text und trage die Werte selbst in den Rechner ein. Die Musterlösung bleibt zunächst verborgen.</p>
+          <h2>📝 Prüfungsaufgabe</h2>
+          <p class="section-text">Wähle eine Aufgabe und bearbeite sie im passenden Arbeitsmodus.</p>
         </div>
       </div>
 
@@ -34,99 +34,145 @@
       </div>
 
       <article class="task-card">
-        <div class="task-card-header">
-          <div>
-            <p class="eyebrow" id="taskMode">Mischung</p>
-            <h3 id="taskTitle">Noch keine Aufgabe gewählt</h3>
-          </div>
-          <button id="loadTaskBtn" type="button">Werte in den Rechner übernehmen</button>
-        </div>
-
+        <p class="eyebrow" id="taskMode">Aufgabengebiet</p>
+        <h3 id="taskTitle">Noch keine Aufgabe gewählt</h3>
         <p id="taskDescription" class="task-description">Wähle oben eine Aufgabe aus.</p>
 
         <div class="task-help" id="taskPromptBox">
           <strong>Arbeitsauftrag:</strong>
-          <span id="taskPrompt">Wähle eine Aufgabe aus, übernimm die Werte und rechne dann selbst.</span>
-        </div>
-
-        <div class="task-actions">
-          <button id="toggleSolutionBtn" type="button" class="secondary">Musterlösung anzeigen</button>
-        </div>
-
-        <div id="taskSolution" class="solution-box hidden">
-          <h4>Musterlösung</h4>
-          <pre id="taskSolutionContent">Noch keine Musterlösung geladen.</pre>
+          <span id="taskPrompt">Wähle eine Aufgabe aus.</span>
         </div>
       </article>
     </section>
 
-    <section class="panel controls">
+    <section class="panel mode-panel">
       <div class="section-header compact">
         <div>
-          <h2>Rechner</h2>
-          <p class="section-text">Trage die Werte aus der Aufgabe ein und vergleiche anschließend deinen Rechenweg.</p>
+          <h2>🎯 Arbeitsmodus</h2>
+          <p class="section-text">Wähle, wie du die Aufgabe bearbeiten möchtest.</p>
         </div>
       </div>
 
-      <div class="toolbar">
-        <label class="field grow">
-          <span>Rechenart</span>
-          <select id="calcType"></select>
-        </label>
-        <button id="exampleBtn" type="button">Beispiel laden</button>
-        <button id="clearBtn" type="button" class="secondary">Leeren</button>
+      <div class="mode-actions">
+        <button id="manualModeBtn" type="button">Rechenweg eingeben</button>
+        <button id="stepModeBtn" type="button" class="secondary">Einzelschritt-Fokus</button>
+        <button id="showSolutionBtn" type="button" class="secondary">Musterlösung anzeigen</button>
+      </div>
+
+      <div id="statusInfo" class="status-info"></div>
+    </section>
+
+    <section class="panel work-panel" id="manualPanel">
+      <div class="section-header compact">
+        <div>
+          <h2>✍️ Rechenweg eingeben</h2>
+          <p class="section-text">Trage für jeden Schritt die Rechenoperation ein und prüfe sie.</p>
+        </div>
       </div>
 
       <div class="input-grid">
-          <label class="field" id="field1">
-            <span id="label1">Eingabe 1</span>
-            <input id="input1" type="number" inputmode="decimal" step="any" />
-          </label>
+        <label class="field hidden" id="field1">
+          <span id="label1">Eingabe 1</span>
+          <input id="input1" type="text" inputmode="text" autocomplete="off" />
+        </label>
 
-          <label class="field" id="field2">
-            <span id="label2">Eingabe 2</span>
-            <input id="input2" type="number" inputmode="decimal" step="any" />
-          </label>
+        <label class="field hidden" id="field2">
+          <span id="label2">Eingabe 2</span>
+          <input id="input2" type="text" inputmode="text" autocomplete="off" />
+        </label>
 
-          <label class="field" id="field3">
-            <span id="label3">Eingabe 3</span>
-            <input id="input3" type="number" inputmode="decimal" step="any" />
-          </label>
+        <label class="field hidden" id="field3">
+          <span id="label3">Eingabe 3</span>
+          <input id="input3" type="text" inputmode="text" autocomplete="off" />
+        </label>
 
-          <label class="field" id="field4">
-            <span id="label4">Eingabe 4</span>
-            <input id="input4" type="number" inputmode="decimal" step="any" />
-          </label>
+        <label class="field hidden" id="field4">
+          <span id="label4">Eingabe 4</span>
+          <input id="input4" type="text" inputmode="text" autocomplete="off" />
+        </label>
 
-          <label class="field" id="field5">
-            <span id="label5">Eingabe 5</span>
-            <input id="input5" type="number" inputmode="decimal" step="any" />
-          </label>
+        <label class="field hidden" id="field5">
+          <span id="label5">Eingabe 5</span>
+          <input id="input5" type="text" inputmode="text" autocomplete="off" />
+        </label>
 
-          <label class="field" id="field6">
-            <span id="label6">Eingabe 6</span>
-            <input id="input6" type="number" inputmode="decimal" step="any" />
-          </label>
+        <label class="field hidden" id="field6">
+          <span id="label6">Eingabe 6</span>
+          <input id="input6" type="text" inputmode="text" autocomplete="off" />
+        </label>
 
-          <label class="field" id="field7">
-            <span id="label7">Eingabe 7</span>
-            <input id="input7" type="number" inputmode="decimal" step="any" />
-          </label>
+        <label class="field hidden" id="field7">
+          <span id="label7">Eingabe 7</span>
+          <input id="input7" type="text" inputmode="text" autocomplete="off" />
+        </label>
 
-          <label class="field" id="field8">
-            <span id="label8">Eingabe 8</span>
-            <input id="input8" type="number" inputmode="decimal" step="any" />
-          </label>
-        </div>
+        <label class="field hidden" id="field8">
+          <span id="label8">Eingabe 8</span>
+          <input id="input8" type="text" inputmode="text" autocomplete="off" />
+        </label>
+      </div>
+
+      <div class="operator-bar" data-target="active-manual">
+        <button type="button" class="op-btn">+</button>
+        <button type="button" class="op-btn">-</button>
+        <button type="button" class="op-btn">×</button>
+        <button type="button" class="op-btn">/</button>
+        <button type="button" class="op-btn">(</button>
+        <button type="button" class="op-btn">)</button>
+      </div>
+
+      <p id="operatorLegend" class="operator-legend">
+        Rechenzeichen: + addieren · - subtrahieren · × multiplizieren · / dividieren
+      </p>
 
       <div class="actions">
-        <button id="calcBtn" type="button" class="primary">Rechnen</button>
+        <button id="checkManualBtn" type="button" class="hidden">Eingaben prüfen</button>
+        <button id="clearManualBtn" type="button" class="secondary">Neu beginnen</button>
+      </div>
+
+      <pre id="manualFeedback">Noch keine Prüfung.</pre>
+    </section>
+
+    <section class="panel work-panel hidden" id="stepPanel">
+      <div class="section-header compact">
+        <div>
+          <h2>🧮 Einzelschritt-Fokus</h2>
+          <p class="section-text">Bearbeite jeden Rechenschritt einzeln.</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <p class="eyebrow" id="stepCounter">Schritt 1 von 1</p>
+        <h3 id="stepQuestion">Noch kein Schritt aktiv</h3>
+        <p id="stepHint" class="section-text">Hier erscheint bei Bedarf ein Tipp.</p>
+
+        <label class="field">
+          <span>Deine Eingabe</span>
+          <input id="stepInput" type="text" inputmode="text" autocomplete="off" />
+        </label>
+
+        <div class="operator-bar" data-target="stepInput">
+          <button type="button" class="op-btn">+</button>
+          <button type="button" class="op-btn">-</button>
+          <button type="button" class="op-btn">×</button>
+          <button type="button" class="op-btn">/</button>
+          <button type="button" class="op-btn">(</button>
+          <button type="button" class="op-btn">)</button>
+        </div>
+
+        <div class="actions">
+          <button id="checkStepBtn" type="button">Schritt prüfen</button>
+          <button id="showHintBtn" type="button" class="secondary">Tipp</button>
+          <button id="nextStepBtn" type="button" class="secondary">Weiter</button>
+        </div>
+
+        <pre id="stepFeedback">Noch keine Prüfung.</pre>
       </div>
     </section>
 
-    <section class="panel output">
-      <h2>Lösung</h2>
-      <pre id="output">Noch keine Berechnung.</pre>
+    <section class="panel output hidden" id="solutionPanel">
+      <h2>✅ Musterlösung</h2>
+      <pre id="solutionOutput">Noch keine Musterlösung angezeigt.</pre>
     </section>
   </main>
 

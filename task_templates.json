@@ -1,41 +1,71 @@
 {
-  "mixing_examples": [
-    {
-      "title": "Mischung 12%, 2%, Ziel 6%, Gesamt 40 ml",
-      "high": 12,
-      "low": 2,
-      "target": 6,
-      "total_ml": 40
-    },
-    {
-      "title": "Verhältnis 12%, 3%, Ziel 6%",
-      "high": 12,
-      "low": 3,
-      "target": 6
-    }
-  ],
-  "concentration_examples": [
-    {
-      "title": "Endkonzentration mit Wasser und Farbcreme",
-      "strong_ml": 40,
-      "strong_pct": 12,
-      "water_ml": 20,
-      "extra_ml": 60
-    }
-  ],
-  "business_examples": [
-    {
-      "title": "Deckungsbeitrag",
-      "umsatz": 20,
-      "variable_kosten": 6
-    },
-    {
-      "title": "Wareneinsatzquote",
-      "wareneinsatz": 6,
-      "umsatz": 20
-    }
-  ],
+  
   "exam_tasks": {
+    "anteile": [
+  {
+  "type": "anteile",
+  "title": "Anteile berechnen (mit Hilfe)",
+  "description": "60 ml werden im Verhältnis 3 : 2 aufgeteilt.",
+  "prompt": "1. Addiere die Teile. 2. Berechne einen Teil. 3. Berechne beide Mengen.",
+  "total_ml": 60,
+  "part1": 3,
+  "part2": 2
+  },
+  {
+  "type": "anteile",
+  "title": "Anteile berechnen (einfach)",
+  "description": "50 ml werden im Verhältnis 2 : 3 aufgeteilt.",
+  "prompt": "Berechne die Menge für beide Anteile.",
+  "total_ml": 50,
+  "part1": 2,
+  "part2": 3
+  },
+  {
+  "type": "anteile",
+  "title": "Anteile mit glatten Ergebnissen",
+  "description": "40 ml werden im Verhältnis 1 : 3 aufgeteilt.",
+  "prompt": "Berechne die Mengen.",
+  "total_ml": 40,
+  "part1": 1,
+  "part2": 3
+  },
+  {
+  "type": "anteile",
+  "title": "Anteile mit größeren Zahlen",
+  "description": "90 ml werden im Verhältnis 6 : 3 aufgeteilt.",
+  "prompt": "Berechne die Mengen für beide Anteile.",
+  "total_ml": 90,
+  "part1": 6,
+  "part2": 3
+  },
+  {
+  "type": "anteile",
+  "title": "Anteile übertragen",
+  "description": "Eine Mischung von 80 ml wird im Verhältnis 5 : 3 hergestellt.",
+  "prompt": "Berechne die Menge in ml für beide Bestandteile.",
+  "total_ml": 80,
+  "part1": 5,
+  "part2": 3
+  },
+  {
+  "type": "anteile",
+  "title": "Anteile berechnen (Prüfung)",
+  "description": "Eine Gesamtmenge von 75 ml wird im Verhältnis 4 : 1 aufgeteilt.",
+  "prompt": "Berechne die Mengen für beide Anteile.",
+  "total_ml": 75,
+  "part1": 4,
+  "part2": 1
+  },
+  {
+    "type": "anteile",
+    "title": "Anteile 6 zu 3 bei 90 ml",
+    "description": "Berechne die Mengen für beide Anteile.",
+    "prompt": "Du kannst direkt mit 6 : 3 rechnen. Kürzen ist optional.",
+    "total_ml": 90,
+    "part1": 6,
+    "part2": 3
+  }
+],
     "mixing": [
       {
         "type": "mixing",

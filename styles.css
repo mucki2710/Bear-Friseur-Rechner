@@ -65,42 +65,34 @@ body {
   margin-bottom: 14px;
 }
 
-.section-header h2,
-.task-card h3,
-.output h2,
-.solution-box h4 {
-  margin: 0 0 4px;
-  line-height: 1.2;
-}
-
 .section-header.compact {
   margin-bottom: 16px;
+}
+
+.section-header h2,
+.task-card h3,
+.output h2 {
+  margin: 0 0 4px;
+  line-height: 1.2;
 }
 
 .toolbar,
 .actions,
 .task-toolbar,
 .task-actions,
-.task-card-header {
+.task-card-header,
+.mode-actions {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.toolbar,
 .task-toolbar {
   margin-bottom: 14px;
 }
 
-.actions,
-.task-actions {
+.actions {
   align-items: center;
-}
-
-.task-card-header {
-  align-items: start;
-  justify-content: space-between;
-  margin-bottom: 14px;
 }
 
 .grow {
@@ -145,12 +137,6 @@ select {
   min-height: 44px;
 }
 
-input:disabled {
-  background: #f3f4f6;
-  color: #9ca3af;
-  cursor: not-allowed;
-}
-
 button {
   padding: 10px 14px;
   min-height: 44px;
@@ -174,13 +160,19 @@ button.secondary {
 .task-card,
 .solution-box,
 .task-help,
-pre {
+pre,
+.step-card {
   border: 1px solid var(--border);
   border-radius: 14px;
 }
 
 .task-card {
   background: var(--soft);
+  padding: 14px;
+}
+
+.step-card {
+  background: #fff;
   padding: 14px;
 }
 
@@ -200,9 +192,10 @@ pre {
 
 .task-help {
   display: block;
-  background: #fff;
+  background: #f0f7ff;
+  border-left: 4px solid #3b82f6;
   padding: 8px 10px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   line-height: 1.4;
 }
 
@@ -216,14 +209,11 @@ pre {
   font-size: 0.82rem;
 }
 
-.solution-box {
-  background: #fff;
-  padding: 12px;
-  margin-top: 12px;
-}
-
-.hidden {
-  display: none;
+.status-info {
+  font-size: 0.85rem;
+  color: #555;
+  margin-top: 6px;
+  line-height: 1.4;
 }
 
 pre {
@@ -234,36 +224,76 @@ pre {
   font-size: 0.96rem;
   background: #fbfbfb;
   padding: 14px;
-  min-height: 160px;
+  min-height: 120px;
   overflow: auto;
 }
 
-@media (max-width: 720px) {
-  .app-shell {
-    padding: 16px;
-  }
-
-  .input-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .toolbar,
-  .actions,
-  .task-toolbar,
-  .task-actions,
-  .task-card-header {
-    align-items: stretch;
-  }
-
-  .toolbar button,
-  .actions button,
-  .task-toolbar button,
-  .task-actions button,
-  .task-card-header button {
-    width: 100%;
-  }
+.hidden {
+  display: none !important;
 }
 
+.operator-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.op-btn {
+  min-width: 44px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.op-btn:hover {
+  background: #f3f4f6;
+}
+
+.operator-legend {
+  margin: 4px 0 10px;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.path-steps {
+  display: grid;
+  gap: 12px;
+}
+
+.locked-step {
+  opacity: 0.7;
+}
+
+.solved-step {
+  background: #f7fff8;
+  border-color: #86efac;
+}
+
+.path-feedback {
+  line-height: 1.45;
+}
+
+.path-hint {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: #1d4ed8;
+}
+
+.path-result {
+  color: #166534;
+  font-weight: 600;
+}
 
 @media (max-width: 720px) {
   :root {
@@ -299,25 +329,54 @@ pre {
     grid-template-columns: 1fr;
   }
 
-  .toolbar,
-  .actions,
   .task-toolbar,
-  .task-actions,
-  .task-card-header {
+  .actions,
+  .mode-actions {
     align-items: stretch;
     gap: 10px;
   }
 
-  .toolbar button,
-  .actions button,
   .task-toolbar button,
-  .task-actions button,
-  .task-card-header button {
+  .actions button,
+  .mode-actions button {
     width: 100%;
   }
 
   .grow {
     flex-basis: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .task-help {
+    padding: 6px 8px;
+  }
+
+  .task-help strong {
+    font-size: 0.75rem;
+  }
+
+  .task-help span {
+    font-size: 0.78rem;
+  }
+
+  .status-info {
+    font-size: 0.8rem;
+  }
+
+  .operator-bar {
+    gap: 6px;
+  }
+
+  .op-btn {
+    min-width: 40px;
+    min-height: 36px;
+    font-size: 0.95rem;
+    padding: 5px 8px;
+  }
+
+  .operator-legend {
+    font-size: 0.82rem;
   }
 }
 
@@ -343,6 +402,6 @@ pre {
 
   pre {
     padding: 12px;
-    min-height: 140px;
+    min-height: 110px;
   }
 }
