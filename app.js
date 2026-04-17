@@ -279,7 +279,7 @@ function buildSteps(task) {
       {
         label: "Starke Lösung minus Ziel",
         question: "Wie viel ist starke Lösung minus Zielkonzentration?",
-        prompt: "Berechne zuerst die obere Differenz im Mischkreuz.",
+        prompt: "Stark minus Ziel",
         placeholder: `${task.high}-${task.target}`,
         expected: diffStrong,
         hint: `${task.high} - ${task.target}`,
@@ -288,7 +288,7 @@ function buildSteps(task) {
       {
         label: "Ziel minus schwache Lösung",
         question: "Wie viel ist Zielkonzentration minus schwache Lösung?",
-        prompt: "Berechne jetzt die untere Differenz im Mischkreuz.",
+        prompt: "Ziel minus Schwach",
         placeholder: `${task.target}-${task.low}`,
         expected: diffWeak,
         hint: `${task.target} - ${task.low}`,
@@ -297,7 +297,7 @@ function buildSteps(task) {
       {
         label: "Anteil starke Lösung",
         question: "Wie groß ist der Anteil der starken Lösung?",
-        prompt: "Der Anteil der starken Lösung entspricht der gegenüberliegenden Differenz.",
+        prompt: "KREUZEN: Zahl von Schwach: Anteil der starken Lösung ist ZIEL minus SCHWACH",
         placeholder: `${diffWeak}`,
         expected: diffWeak,
         hint: `Anteil stark = ${diffWeak}`,
@@ -306,7 +306,7 @@ function buildSteps(task) {
       {
         label: "Anteil schwache Lösung",
         question: "Wie groß ist der Anteil der schwachen Lösung?",
-        prompt: "Der Anteil der schwachen Lösung entspricht der gegenüberliegenden Differenz.",
+        prompt: "KREUZEN: Zahl von Stark: Anteil der schwachen Lösung ist STARK minus ZIEL",
         placeholder: `${diffStrong}`,
         expected: diffStrong,
         hint: `Anteil schwach = ${diffStrong}`,
@@ -315,7 +315,7 @@ function buildSteps(task) {
       {
         label: "Gesamtteile",
         question: "Wie viele Teile insgesamt?",
-        prompt: "Addiere beide Anteile.",
+        prompt: "Summe beider Anteile: Anteile STARK + Anteile SCHWACH.",
         placeholder: `${diffWeak}+${diffStrong}`,
         expected: totalParts,
         hint: `${diffWeak} + ${diffStrong}`,
@@ -324,7 +324,7 @@ function buildSteps(task) {
       {
         label: "1 Teil in ml",
         question: "Wie viel ml entspricht 1 Teil?",
-        prompt: "Teile die Gesamtmenge durch die Gesamtteile.",
+        prompt: "Teile die Gesamtmenge durch die Summe von Anteile STARK + Anteile SCHWACH.",
         placeholder: `${task.total_ml}/${totalParts}`,
         expected: onePart,
         hint: `${task.total_ml} / ${totalParts}`,
@@ -333,7 +333,7 @@ function buildSteps(task) {
       {
         label: "Starke Lösung in ml",
         question: "Wie viel ml starke Lösung werden benötigt?",
-        prompt: "Anteil starke Lösung × Wert eines Teils.",
+        prompt: "Anteil starke Lösung × ml eines Teils der Gesamtmenge.",
         placeholder: `${diffWeak}×${formatNumber(onePart)}`,
         expected: strongMl,
         hint: `${diffWeak} × ${formatNumber(onePart)}`,
@@ -342,7 +342,7 @@ function buildSteps(task) {
       {
         label: "Schwache Lösung in ml",
         question: "Wie viel ml schwache Lösung werden benötigt?",
-        prompt: "Anteil schwache Lösung × Wert eines Teils.",
+        prompt: "Anteil schwache Lösung × ml eines Teils der Gesamtmenge.",
         placeholder: `${diffStrong}×${formatNumber(onePart)}`,
         expected: weakMl,
         hint: `${diffStrong} × ${formatNumber(onePart)}`,
@@ -593,6 +593,7 @@ function renderPathSteps() {
           inputmode="text"
           autocomplete="off"
           placeholder="${step.placeholder || ""}"
+          
           value="${step.userInput || ""}"
           ${!step.unlocked || step.solved ? "disabled" : ""}
         />
@@ -813,7 +814,15 @@ function buildSolutionText(task) {
   }
 
   const pathLines = steps.map((step, index) => {
-    return `${index + 1}. ${step.label}: ${step.hint} = ${step.resultText}`;
+      const hint = step.hint || "";
+      const result = step.resultText || "";
+
+      // Wenn im Hint schon ein "=" vorkommt → nicht nochmal anhängen
+      if (hint.includes("=")) {
+        return `${index + 1}. ${step.label}: ${hint}`;
+      }
+
+      return `${index + 1}. ${step.label}: ${hint} = ${result}`;
   });
 
   return [
