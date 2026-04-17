@@ -553,6 +553,10 @@ function clearClassicManualFields() {
 
   if (checkManualBtn) checkManualBtn.classList.add("hidden");
 }
+//Damit werden Lösungsvorschläge beim Laden sichtbar dargestellt.
+//placeholder="${step.placeholder || ""}"
+//damit werden sie ausgeblendet
+//placeholder=""
 
 function renderPathSteps() {
   const task = getCurrentTask();
@@ -592,7 +596,7 @@ function renderPathSteps() {
           type="text"
           inputmode="text"
           autocomplete="off"
-          placeholder="${step.placeholder || ""}"
+          placeholder=""
           
           value="${step.userInput || ""}"
           ${!step.unlocked || step.solved ? "disabled" : ""}
