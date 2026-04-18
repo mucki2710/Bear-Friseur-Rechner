@@ -230,8 +230,8 @@ function buildSteps(task) {
     return [
       {
         label: "Teile addieren",
-        question: "Wie viele Teile insgesamt?",
-        prompt: "Addiere die Verhältnis-Zahlen.",
+        question: "Wie viele Teile sind es insgesamt?",
+        prompt: "Bilde die Summe der Verhältnis-Zahlen (Teile 1 + Teile 2).",
         placeholder: `${task.part1}+${task.part2}`,
         expected: totalParts,
         hint: `${task.part1} + ${task.part2}`,
@@ -240,7 +240,7 @@ function buildSteps(task) {
       {
         label: "1 Teil berechnen",
         question: "Wie viel ml entspricht 1 Teil?",
-        prompt: "Teile die Gesamtmenge durch die Gesamtteile.",
+        prompt: "Teile die Gesamtmenge durch die Summe der Teile.",
         placeholder: `${task.total_ml}/${totalParts}`,
         expected: onePart,
         hint: `${task.total_ml} / ${totalParts}`,
@@ -249,7 +249,7 @@ function buildSteps(task) {
       {
         label: `${task.part1} Teile berechnen`,
         question: `Wie viel ml sind ${task.part1} Teile?`,
-        prompt: "Multipliziere die Teilezahl mit dem Wert eines Teils.",
+        prompt: "Multipliziere die Zahl der Teile mit dem Wert eines Teils.",
         placeholder: `${task.part1}×${formatNumber(onePart)}`,
         expected: onePart * task.part1,
         hint: `${task.part1} × ${formatNumber(onePart)}`,
@@ -258,7 +258,7 @@ function buildSteps(task) {
       {
         label: `${task.part2} Teile berechnen`,
         question: `Wie viel ml sind ${task.part2} Teile?`,
-        prompt: "Multipliziere die Teilezahl mit dem Wert eines Teils.",
+        prompt: "Multipliziere die Zahl der Teile mit dem Wert eines Teils.",
         placeholder: `${task.part2}×${formatNumber(onePart)}`,
         expected: onePart * task.part2,
         hint: `${task.part2} × ${formatNumber(onePart)}`,
@@ -414,7 +414,7 @@ function buildSteps(task) {
       {
         label: "Gesamtmenge",
         question: "Wie groß ist die Gesamtmenge in ml?",
-        prompt: "Addiere Entwickler, Wasser und Zusatzmenge.",
+        prompt: "Bilde die Summe von Entwickler, Wasser und Zusatzmenge.",
         placeholder: `${task.strong_ml}+${task.water_ml}+${task.extra_ml}`,
         expected: total,
         hint: `${task.strong_ml} + ${task.water_ml} + ${task.extra_ml}`,
