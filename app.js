@@ -114,7 +114,16 @@ function formatCategoryName(key) {
     anteile: "Anteile",
     mixing: "Mischung",
     concentration: "Konzentration",
-    prozent: "Prozent"
+    prozent: "Prozent",
+    deckungsbeitrag: "Deckungsbeitrag",
+    wareneinsatzquote: "Wareneinsatzquote",
+    warenrabatt: "Warenrabatt",
+    preisberechnung: "Preisberechnung",
+    bezugskalkulation: "Bezugskalkulation",
+    verkaufskalkulation: "Verkaufskalkulation",
+    umweltschutz: "Umweltschutz",
+    marketing: "Marketing",
+    kalkulation: "Kalkulation"
   };
   return map[key] || key;
 }
@@ -436,73 +445,524 @@ function buildSteps(task) {
   }
 
   if (task.type === "prozent_anteil") {
-    const anteilMl = task.gesamt_ml * task.prozent / 100;
+  const anteilMl = task.gesamt_ml * task.prozent / 100;
 
-    return [
-      {
-        label: "Gesucht erkennen",
-        question: "Was ist gesucht: ml oder %?",
-        prompt: "Hier ist eine Menge in ml gesucht.",
-        placeholder: `${task.gesamt_ml}×${task.prozent}/100`,
-        expected: anteilMl,
-        hint: `ml gesucht`,
-        resultText: `${formatNumber(anteilMl)} ml`
-      },
-      {
-        label: "Prozent von der Gesamtmenge berechnen",
-        question: "Wie viel ml sind die angegebenen Prozent von der Gesamtmenge?",
-        prompt: "Rechne: Gesamtmenge × Prozent / 100.",
-        placeholder: `${task.gesamt_ml}×${task.prozent}/100`,
-        expected: anteilMl,
-        hint: `${task.gesamt_ml} × ${task.prozent} / 100`,
-        resultText: `${formatNumber(anteilMl)} ml`
-      },
-      {
-        label: "Ergebnis in ml angeben",
-        question: "Wie lautet das Ergebnis in ml?",
-        prompt: "Notiere die berechnete Wirkstoffmenge.",
-        placeholder: `${formatNumber(anteilMl)}`,
-        expected: anteilMl,
-        hint: `Ergebnis = ${formatNumber(anteilMl)} ml`,
-        resultText: `${formatNumber(anteilMl)} ml`
-      }
-    ];
-  }
+  return [
+    {
+      label: "Prozent von der Gesamtmenge berechnen",
+      question: "Wie viel ml sind die angegebenen Prozent von der Gesamtmenge?",
+      prompt: "Gesucht ist eine Menge in ml. Rechne: Gesamtmenge × Prozent / 100.",
+      placeholder: `${task.gesamt_ml}×${task.prozent}/100`,
+      expected: anteilMl,
+      hint: `${task.gesamt_ml} × ${task.prozent} / 100`,
+      resultText: `${formatNumber(anteilMl)} ml`
+    },
+    {
+      label: "Ergebnis in ml angeben",
+      question: "Wie lautet das Ergebnis in ml?",
+      prompt: "Notiere die berechnete Wirkstoffmenge.",
+      placeholder: `${formatNumber(anteilMl)}`,
+      expected: anteilMl,
+      hint: `Ergebnis = ${formatNumber(anteilMl)} ml`,
+      resultText: `${formatNumber(anteilMl)} ml`
+    }
+  ];
+}
 
   if (task.type === "prozent_konzentration") {
-    const prozent = (task.anteil_ml / task.gesamt_ml) * 100;
+  const prozent = (task.anteil_ml / task.gesamt_ml) * 100;
+
+  return [
+    {
+      label: "Konzentration berechnen",
+      question: "Wie viel Prozent sind Anteil von der Gesamtmenge?",
+      prompt: "Gesucht ist ein Prozentsatz. Rechne: Anteil / Gesamtmenge × 100.",
+      placeholder: `${task.anteil_ml}/${task.gesamt_ml}×100`,
+      expected: prozent,
+      hint: `${task.anteil_ml} / ${task.gesamt_ml} × 100`,
+      resultText: `${formatNumber(prozent)} %`
+    },
+    {
+      label: "Ergebnis in % angeben",
+      question: "Wie lautet das Ergebnis in Prozent?",
+      prompt: "Notiere die berechnete Konzentration.",
+      placeholder: `${formatNumber(prozent)}`,
+      expected: prozent,
+      hint: `Ergebnis = ${formatNumber(prozent)} %`,
+      resultText: `${formatNumber(prozent)} %`
+    }
+  ];
+}
+    if (task.type === "deckungsbeitrag") {
+    const deckungsbeitrag = task.umsatz - task.variable_kosten;
 
     return [
       {
-        label: "Gesucht erkennen",
-        question: "Was ist gesucht: ml oder %?",
-        prompt: "Hier ist ein Prozentsatz gesucht.",
-        placeholder: `${task.anteil_ml}/${task.gesamt_ml}×100`,
-        expected: prozent,
-        hint: `% gesucht`,
-        resultText: `${formatNumber(prozent)} %`
+        label: "Variable Kosten vom Umsatz abziehen",
+        question: "Wie berechnet man den Deckungsbeitrag?",
+        prompt: "Nutze die Formel: Deckungsbeitrag = Umsatz - variable Kosten.",
+        placeholder: `${task.umsatz}-${task.variable_kosten}`,
+        expected: deckungsbeitrag,
+        hint: `${task.umsatz} - ${task.variable_kosten}`,
+        resultText: `${formatNumber(deckungsbeitrag)} €`
       },
       {
-        label: "Anteil durch Gesamtmenge teilen",
-        question: "Wie groß ist der Anteil an der Gesamtmenge?",
-        prompt: "Teile zuerst Anteil durch Gesamtmenge.",
-        placeholder: `${task.anteil_ml}/${task.gesamt_ml}×100`,
-        expected: prozent,
-        hint: `${task.anteil_ml} / ${task.gesamt_ml} × 100`,
-        resultText: `${formatNumber(prozent)} %`
-      },
-      {
-        label: "Ergebnis in % angeben",
-        question: "Wie lautet das Ergebnis in Prozent?",
-        prompt: "Notiere die berechnete Konzentration.",
-        placeholder: `${formatNumber(prozent)}`,
-        expected: prozent,
-        hint: `Ergebnis = ${formatNumber(prozent)} %`,
-        resultText: `${formatNumber(prozent)} %`
+        label: "Ergebnis in Euro angeben",
+        question: "Wie hoch ist der Deckungsbeitrag in Euro?",
+        prompt: "Notiere das Ergebnis in €.",
+        placeholder: `${formatNumber(deckungsbeitrag)}`,
+        expected: deckungsbeitrag,
+        hint: `Ergebnis = ${formatNumber(deckungsbeitrag)} €`,
+        resultText: `${formatNumber(deckungsbeitrag)} €`
       }
     ];
   }
 
+  if (task.type === "wareneinsatzquote") {
+    const quote = (task.wareneinsatz / task.umsatz) * 100;
+
+    return [
+      {
+        label: "Wareneinsatzquote berechnen",
+        question: "Wie viel Prozent des Umsatzes sind Wareneinsatz?",
+        prompt: "Rechne: Wareneinsatz / Umsatz × 100.",
+        placeholder: `${task.wareneinsatz}/${task.umsatz}×100`,
+        expected: quote,
+        hint: `${task.wareneinsatz} / ${task.umsatz} × 100`,
+        resultText: `${formatNumber(quote)} %`
+      },
+      {
+        label: "Ergebnis in Prozent angeben",
+        question: "Wie hoch ist die Wareneinsatzquote?",
+        prompt: "Notiere das Ergebnis in %.",
+        placeholder: `${formatNumber(quote)}`,
+        expected: quote,
+        hint: `Ergebnis = ${formatNumber(quote)} %`,
+        resultText: `${formatNumber(quote)} %`
+      }
+    ];
+  }
+
+  if (task.type === "warenrabatt") {
+    const rabattBetrag1 = task.preis1 * task.rabatt1 / 100;
+    const zahlbetrag1 = task.preis1 - rabattBetrag1;
+    const rabattBetrag2 = task.preis2 * task.rabatt2 / 100;
+    const zahlbetrag2 = task.preis2 - rabattBetrag2;
+    const gesamt = zahlbetrag1 + zahlbetrag2;
+
+    return [
+      {
+        label: "Rabattbetrag Artikel 1",
+        question: "Wie hoch ist der Rabattbetrag für Artikel 1?",
+        prompt: "Preis × Rabatt / 100.",
+        placeholder: `${task.preis1}×${task.rabatt1}/100`,
+        expected: rabattBetrag1,
+        hint: `${task.preis1} × ${task.rabatt1} / 100`,
+        resultText: `${formatNumber(rabattBetrag1)} €`
+      },
+      {
+        label: "Zahlbetrag Artikel 1",
+        question: "Wie hoch ist der Zahlbetrag für Artikel 1?",
+        prompt: "Preis - Rabattbetrag.",
+        placeholder: `${task.preis1}-${formatNumber(rabattBetrag1)}`,
+        expected: zahlbetrag1,
+        hint: `${task.preis1} - ${formatNumber(rabattBetrag1)}`,
+        resultText: `${formatNumber(zahlbetrag1)} €`
+      },
+      {
+        label: "Rabattbetrag Artikel 2",
+        question: "Wie hoch ist der Rabattbetrag für Artikel 2?",
+        prompt: "Preis × Rabatt / 100.",
+        placeholder: `${task.preis2}×${task.rabatt2}/100`,
+        expected: rabattBetrag2,
+        hint: `${task.preis2} × ${task.rabatt2} / 100`,
+        resultText: `${formatNumber(rabattBetrag2)} €`
+      },
+      {
+        label: "Zahlbetrag Artikel 2",
+        question: "Wie hoch ist der Zahlbetrag für Artikel 2?",
+        prompt: "Preis - Rabattbetrag.",
+        placeholder: `${task.preis2}-${formatNumber(rabattBetrag2)}`,
+        expected: zahlbetrag2,
+        hint: `${task.preis2} - ${formatNumber(rabattBetrag2)}`,
+        resultText: `${formatNumber(zahlbetrag2)} €`
+      },
+      {
+        label: "Gesamtbetrag",
+        question: "Wie hoch ist der gesamte Zahlbetrag?",
+        prompt: "Addiere beide Zahlbeträge.",
+        placeholder: `${formatNumber(zahlbetrag1)}+${formatNumber(zahlbetrag2)}`,
+        expected: gesamt,
+        hint: `${formatNumber(zahlbetrag1)} + ${formatNumber(zahlbetrag2)}`,
+        resultText: `${formatNumber(gesamt)} €`
+      }
+    ];
+  }
+
+  if (task.type === "preisberechnung") {
+    const gesamt1 = task.stueckpreis * task.menge1;
+    const rabattBetrag1 = gesamt1 * task.rabatt1 / 100;
+    const zahlbetrag1 = gesamt1 - rabattBetrag1;
+    const stueckpreisNeu1 = zahlbetrag1 / task.menge1;
+
+    const gesamt2 = task.stueckpreis * task.menge2;
+    const rabattBetrag2 = gesamt2 * task.rabatt2 / 100;
+    const zahlbetrag2 = gesamt2 - rabattBetrag2;
+    const stueckpreisNeu2 = zahlbetrag2 / task.menge2;
+
+    return [
+      {
+        label: "Gesamtpreis bei Menge 1",
+        question: "Wie hoch ist der Gesamtpreis für Menge 1 ohne Rabatt?",
+        prompt: "Stückpreis × Menge 1.",
+        placeholder: `${task.stueckpreis}×${task.menge1}`,
+        expected: gesamt1,
+        hint: `${task.stueckpreis} × ${task.menge1}`,
+        resultText: `${formatNumber(gesamt1)} €`
+      },
+      {
+        label: "Rabattbetrag bei Menge 1",
+        question: "Wie hoch ist der Rabattbetrag bei Menge 1?",
+        prompt: "Gesamtpreis × Rabatt / 100.",
+        placeholder: `${formatNumber(gesamt1)}×${task.rabatt1}/100`,
+        expected: rabattBetrag1,
+        hint: `${formatNumber(gesamt1)} × ${task.rabatt1} / 100`,
+        resultText: `${formatNumber(rabattBetrag1)} €`
+      },
+      {
+        label: "Zahlbetrag bei Menge 1",
+        question: "Wie hoch ist der Zahlbetrag bei Menge 1?",
+        prompt: "Gesamtpreis - Rabattbetrag.",
+        placeholder: `${formatNumber(gesamt1)}-${formatNumber(rabattBetrag1)}`,
+        expected: zahlbetrag1,
+        hint: `${formatNumber(gesamt1)} - ${formatNumber(rabattBetrag1)}`,
+        resultText: `${formatNumber(zahlbetrag1)} €`
+      },
+      {
+        label: "Stückpreis bei Menge 1",
+        question: "Wie hoch ist der Stückpreis bei Menge 1?",
+        prompt: "Zahlbetrag / Menge 1.",
+        placeholder: `${formatNumber(zahlbetrag1)}/${task.menge1}`,
+        expected: stueckpreisNeu1,
+        hint: `${formatNumber(zahlbetrag1)} / ${task.menge1}`,
+        resultText: `${formatNumber(stueckpreisNeu1)} €`
+      },
+      {
+        label: "Gesamtpreis bei Menge 2",
+        question: "Wie hoch ist der Gesamtpreis für Menge 2 ohne Rabatt?",
+        prompt: "Stückpreis × Menge 2.",
+        placeholder: `${task.stueckpreis}×${task.menge2}`,
+        expected: gesamt2,
+        hint: `${task.stueckpreis} × ${task.menge2}`,
+        resultText: `${formatNumber(gesamt2)} €`
+      },
+      {
+        label: "Rabattbetrag bei Menge 2",
+        question: "Wie hoch ist der Rabattbetrag bei Menge 2?",
+        prompt: "Gesamtpreis × Rabatt / 100.",
+        placeholder: `${formatNumber(gesamt2)}×${task.rabatt2}/100`,
+        expected: rabattBetrag2,
+        hint: `${formatNumber(gesamt2)} × ${task.rabatt2} / 100`,
+        resultText: `${formatNumber(rabattBetrag2)} €`
+      },
+      {
+        label: "Zahlbetrag bei Menge 2",
+        question: "Wie hoch ist der Zahlbetrag bei Menge 2?",
+        prompt: "Gesamtpreis - Rabattbetrag.",
+        placeholder: `${formatNumber(gesamt2)}-${formatNumber(rabattBetrag2)}`,
+        expected: zahlbetrag2,
+        hint: `${formatNumber(gesamt2)} - ${formatNumber(rabattBetrag2)}`,
+        resultText: `${formatNumber(zahlbetrag2)} €`
+      },
+      {
+        label: "Stückpreis bei Menge 2",
+        question: "Wie hoch ist der Stückpreis bei Menge 2?",
+        prompt: "Zahlbetrag / Menge 2.",
+        placeholder: `${formatNumber(zahlbetrag2)}/${task.menge2}`,
+        expected: stueckpreisNeu2,
+        hint: `${formatNumber(zahlbetrag2)} / ${task.menge2}`,
+        resultText: `${formatNumber(stueckpreisNeu2)} €`
+      }
+    ];
+  }
+
+  if (task.type === "bezugskalkulation") {
+    const listenpreisGesamt = task.stueckpreis * task.menge;
+    const rabattBetrag = listenpreisGesamt * task.rabatt / 100;
+    const zielEinkaufspreis = listenpreisGesamt - rabattBetrag;
+    const skontoBetrag = zielEinkaufspreis * task.skonto / 100;
+    const bareinkaufspreis = zielEinkaufspreis - skontoBetrag;
+    const bezugspreisGesamt = bareinkaufspreis + task.bezugskosten;
+    const bezugspreisProStueck = bezugspreisGesamt / task.menge;
+
+    return [
+      {
+        label: "Listeneinkaufspreis gesamt",
+        question: "Wie hoch ist der gesamte Listeneinkaufspreis?",
+        prompt: "Stückpreis × Menge.",
+        placeholder: `${task.stueckpreis}×${task.menge}`,
+        expected: listenpreisGesamt,
+        hint: `${task.stueckpreis} × ${task.menge}`,
+        resultText: `${formatNumber(listenpreisGesamt)} €`
+      },
+      {
+        label: "Rabattbetrag",
+        question: "Wie hoch ist der Rabattbetrag?",
+        prompt: "Listeneinkaufspreis × Rabatt / 100.",
+        placeholder: `${formatNumber(listenpreisGesamt)}×${task.rabatt}/100`,
+        expected: rabattBetrag,
+        hint: `${formatNumber(listenpreisGesamt)} × ${task.rabatt} / 100`,
+        resultText: `${formatNumber(rabattBetrag)} €`
+      },
+      {
+        label: "Zieleinkaufspreis",
+        question: "Wie hoch ist der Zieleinkaufspreis?",
+        prompt: "Listeneinkaufspreis - Rabattbetrag.",
+        placeholder: `${formatNumber(listenpreisGesamt)}-${formatNumber(rabattBetrag)}`,
+        expected: zielEinkaufspreis,
+        hint: `${formatNumber(listenpreisGesamt)} - ${formatNumber(rabattBetrag)}`,
+        resultText: `${formatNumber(zielEinkaufspreis)} €`
+      },
+      {
+        label: "Skontobetrag",
+        question: "Wie hoch ist der Skontobetrag?",
+        prompt: "Zieleinkaufspreis × Skonto / 100.",
+        placeholder: `${formatNumber(zielEinkaufspreis)}×${task.skonto}/100`,
+        expected: skontoBetrag,
+        hint: `${formatNumber(zielEinkaufspreis)} × ${task.skonto} / 100`,
+        resultText: `${formatNumber(skontoBetrag)} €`
+      },
+      {
+        label: "Bareinkaufspreis",
+        question: "Wie hoch ist der Bareinkaufspreis?",
+        prompt: "Zieleinkaufspreis - Skontobetrag.",
+        placeholder: `${formatNumber(zielEinkaufspreis)}-${formatNumber(skontoBetrag)}`,
+        expected: bareinkaufspreis,
+        hint: `${formatNumber(zielEinkaufspreis)} - ${formatNumber(skontoBetrag)}`,
+        resultText: `${formatNumber(bareinkaufspreis)} €`
+      },
+      {
+        label: "Bezugspreis gesamt",
+        question: "Wie hoch ist der gesamte Bezugspreis?",
+        prompt: "Bareinkaufspreis + Bezugskosten.",
+        placeholder: `${formatNumber(bareinkaufspreis)}+${task.bezugskosten}`,
+        expected: bezugspreisGesamt,
+        hint: `${formatNumber(bareinkaufspreis)} + ${task.bezugskosten}`,
+        resultText: `${formatNumber(bezugspreisGesamt)} €`
+      },
+      {
+        label: "Bezugspreis pro Stück",
+        question: "Wie hoch ist der Bezugspreis je Stück?",
+        prompt: "Bezugspreis gesamt / Menge.",
+        placeholder: `${formatNumber(bezugspreisGesamt)}/${task.menge}`,
+        expected: bezugspreisProStueck,
+        hint: `${formatNumber(bezugspreisGesamt)} / ${task.menge}`,
+        resultText: `${formatNumber(bezugspreisProStueck)} €`
+      }
+    ];
+  }
+
+  if (task.type === "verkaufskalkulation") {
+    const rabattBetrag = task.listenpreis * task.rabatt / 100;
+    const zielEinkaufspreis = task.listenpreis - rabattBetrag;
+    const skontoBetrag = zielEinkaufspreis * task.skonto / 100;
+    const bareinkaufspreis = zielEinkaufspreis - skontoBetrag;
+    const bezugspreis = bareinkaufspreis + task.bezugskosten;
+    const handlungskostenBetrag = bezugspreis * task.handlungskosten / 100;
+    const selbstkosten = bezugspreis + handlungskostenBetrag;
+    const gewinnBetrag = selbstkosten * task.gewinn / 100;
+    const nettoverkaufspreis = selbstkosten + gewinnBetrag;
+    const mwstBetrag = nettoverkaufspreis * task.mwst / 100;
+    const bruttoverkaufspreis = nettoverkaufspreis + mwstBetrag;
+
+    return [
+      {
+        label: "Rabattbetrag",
+        question: "Wie hoch ist der Rabattbetrag?",
+        prompt: "Listenpreis × Rabatt / 100.",
+        placeholder: `${task.listenpreis}×${task.rabatt}/100`,
+        expected: rabattBetrag,
+        hint: `${task.listenpreis} × ${task.rabatt} / 100`,
+        resultText: `${formatNumber(rabattBetrag)} €`
+      },
+      {
+        label: "Zieleinkaufspreis",
+        question: "Wie hoch ist der Zieleinkaufspreis?",
+        prompt: "Listenpreis - Rabattbetrag.",
+        placeholder: `${task.listenpreis}-${formatNumber(rabattBetrag)}`,
+        expected: zielEinkaufspreis,
+        hint: `${task.listenpreis} - ${formatNumber(rabattBetrag)}`,
+        resultText: `${formatNumber(zielEinkaufspreis)} €`
+      },
+      {
+        label: "Skontobetrag",
+        question: "Wie hoch ist der Skontobetrag?",
+        prompt: "Zieleinkaufspreis × Skonto / 100.",
+        placeholder: `${formatNumber(zielEinkaufspreis)}×${task.skonto}/100`,
+        expected: skontoBetrag,
+        hint: `${formatNumber(zielEinkaufspreis)} × ${task.skonto} / 100`,
+        resultText: `${formatNumber(skontoBetrag)} €`
+      },
+      {
+        label: "Bareinkaufspreis",
+        question: "Wie hoch ist der Bareinkaufspreis?",
+        prompt: "Zieleinkaufspreis - Skontobetrag.",
+        placeholder: `${formatNumber(zielEinkaufspreis)}-${formatNumber(skontoBetrag)}`,
+        expected: bareinkaufspreis,
+        hint: `${formatNumber(zielEinkaufspreis)} - ${formatNumber(skontoBetrag)}`,
+        resultText: `${formatNumber(bareinkaufspreis)} €`
+      },
+      {
+        label: "Bezugspreis",
+        question: "Wie hoch ist der Bezugspreis?",
+        prompt: "Bareinkaufspreis + Bezugskosten.",
+        placeholder: `${formatNumber(bareinkaufspreis)}+${task.bezugskosten}`,
+        expected: bezugspreis,
+        hint: `${formatNumber(bareinkaufspreis)} + ${task.bezugskosten}`,
+        resultText: `${formatNumber(bezugspreis)} €`
+      },
+      {
+        label: "Handlungskosten",
+        question: "Wie hoch sind die Handlungskosten?",
+        prompt: "Bezugspreis × Handlungskosten / 100.",
+        placeholder: `${formatNumber(bezugspreis)}×${task.handlungskosten}/100`,
+        expected: handlungskostenBetrag,
+        hint: `${formatNumber(bezugspreis)} × ${task.handlungskosten} / 100`,
+        resultText: `${formatNumber(handlungskostenBetrag)} €`
+      },
+      {
+        label: "Selbstkosten",
+        question: "Wie hoch sind die Selbstkosten?",
+        prompt: "Bezugspreis + Handlungskosten.",
+        placeholder: `${formatNumber(bezugspreis)}+${formatNumber(handlungskostenBetrag)}`,
+        expected: selbstkosten,
+        hint: `${formatNumber(bezugspreis)} + ${formatNumber(handlungskostenBetrag)}`,
+        resultText: `${formatNumber(selbstkosten)} €`
+      },
+      {
+        label: "Gewinn",
+        question: "Wie hoch ist der Gewinn?",
+        prompt: "Selbstkosten × Gewinn / 100.",
+        placeholder: `${formatNumber(selbstkosten)}×${task.gewinn}/100`,
+        expected: gewinnBetrag,
+        hint: `${formatNumber(selbstkosten)} × ${task.gewinn} / 100`,
+        resultText: `${formatNumber(gewinnBetrag)} €`
+      },
+      {
+        label: "Nettoverkaufspreis",
+        question: "Wie hoch ist der Nettoverkaufspreis?",
+        prompt: "Selbstkosten + Gewinn.",
+        placeholder: `${formatNumber(selbstkosten)}+${formatNumber(gewinnBetrag)}`,
+        expected: nettoverkaufspreis,
+        hint: `${formatNumber(selbstkosten)} + ${formatNumber(gewinnBetrag)}`,
+        resultText: `${formatNumber(nettoverkaufspreis)} €`
+      },
+      {
+        label: "Mehrwertsteuer",
+        question: "Wie hoch ist die Mehrwertsteuer?",
+        prompt: "Nettoverkaufspreis × MwSt / 100.",
+        placeholder: `${formatNumber(nettoverkaufspreis)}×${task.mwst}/100`,
+        expected: mwstBetrag,
+        hint: `${formatNumber(nettoverkaufspreis)} × ${task.mwst} / 100`,
+        resultText: `${formatNumber(mwstBetrag)} €`
+      },
+      {
+        label: "Bruttoverkaufspreis",
+        question: "Wie hoch ist der Bruttoverkaufspreis?",
+        prompt: "Nettoverkaufspreis + Mehrwertsteuer.",
+        placeholder: `${formatNumber(nettoverkaufspreis)}+${formatNumber(mwstBetrag)}`,
+        expected: bruttoverkaufspreis,
+        hint: `${formatNumber(nettoverkaufspreis)} + ${formatNumber(mwstBetrag)}`,
+        resultText: `${formatNumber(bruttoverkaufspreis)} €`
+      }
+    ];
+  }
+
+  if (task.type === "umweltschutz") {
+    const proTag = task.rest_ml * task.tuben_pro_tag;
+    const proMonat = proTag * task.arbeitstage_pro_monat;
+    const proJahr = proMonat * 12;
+
+    return [
+      {
+        label: "Farbverlust pro Tag",
+        question: "Wie groß ist der Farbverlust pro Tag?",
+        prompt: "Restmenge pro Tube × Tuben pro Tag.",
+        placeholder: `${task.rest_ml}×${task.tuben_pro_tag}`,
+        expected: proTag,
+        hint: `${task.rest_ml} × ${task.tuben_pro_tag}`,
+        resultText: `${formatNumber(proTag)} ml`
+      },
+      {
+        label: "Farbverlust pro Monat",
+        question: "Wie groß ist der Farbverlust pro Monat?",
+        prompt: "Tagesverlust × Arbeitstage pro Monat.",
+        placeholder: `${formatNumber(proTag)}×${task.arbeitstage_pro_monat}`,
+        expected: proMonat,
+        hint: `${formatNumber(proTag)} × ${task.arbeitstage_pro_monat}`,
+        resultText: `${formatNumber(proMonat)} ml`
+      },
+      {
+        label: "Farbverlust pro Jahr",
+        question: "Wie groß ist der Farbverlust pro Jahr?",
+        prompt: "Monatsverlust × 12.",
+        placeholder: `${formatNumber(proMonat)}×12`,
+        expected: proJahr,
+        hint: `${formatNumber(proMonat)} × 12`,
+        resultText: `${formatNumber(proJahr)} ml`
+      }
+    ];
+  }
+
+  if (task.type === "marketing_vormonat") {
+    const vormonat = task.aktuelle_kunden / (1 + task.steigerung / 100);
+
+    return [
+      {
+        label: "100 % + Steigerung",
+        question: "Wie viel Prozent entspricht der aktuelle Monat?",
+        prompt: "Addiere 100 % und die Steigerung.",
+        placeholder: `100+${task.steigerung}`,
+        expected: 100 + task.steigerung,
+        hint: `100 + ${task.steigerung}`,
+        resultText: `${formatNumber(100 + task.steigerung)} %`
+      },
+      {
+        label: "Vormonat berechnen",
+        question: "Wie viele Kunden hatte der Vormonat?",
+        prompt: "Aktuelle Kundenzahl / 120 × 100 oder direkt / 1,2.",
+        placeholder: `${task.aktuelle_kunden}/${1 + task.steigerung / 100}`,
+        expected: vormonat,
+        hint: `${task.aktuelle_kunden} / ${formatNumber(1 + task.steigerung / 100)}`,
+        resultText: `${formatNumber(vormonat)} Kunden`
+      }
+    ];
+  }
+
+  if (task.type === "marketing_umsatz") {
+    const gesamtumsatz = task.kunden * task.umsatz_pro_kunde;
+
+    return [
+      {
+        label: "Gesamtumsatz berechnen",
+        question: "Wie hoch ist der Gesamtumsatz?",
+        prompt: "Kundenzahl × Umsatz pro Kunde.",
+        placeholder: `${task.kunden}×${task.umsatz_pro_kunde}`,
+        expected: gesamtumsatz,
+        hint: `${task.kunden} × ${task.umsatz_pro_kunde}`,
+        resultText: `${formatNumber(gesamtumsatz)} €`
+      },
+      {
+        label: "Ergebnis angeben",
+        question: "Wie lautet der Gesamtumsatz in Euro?",
+        prompt: "Notiere das Ergebnis in €.",
+        placeholder: `${formatNumber(gesamtumsatz)}`,
+        expected: gesamtumsatz,
+        hint: `Ergebnis = ${formatNumber(gesamtumsatz)} €`,
+        resultText: `${formatNumber(gesamtumsatz)} €`
+      }
+    ];
+  }
   return [];
 }
 
@@ -555,6 +1015,41 @@ function getSmartErrorFeedback(task, stepIndex, inputValue) {
     return `❌ Hier ist ein Prozentsatz gesucht. Rechne Anteil / Gesamtmenge × 100.`;
   }
 
+    if (task.type === "deckungsbeitrag") {
+    return `❌ Nutze: Umsatz - variable Kosten.`;
+  }
+
+  if (task.type === "wareneinsatzquote") {
+    return `❌ Nutze: Wareneinsatz / Umsatz × 100.`;
+  }
+
+  if (task.type === "warenrabatt") {
+    return `❌ Rechne zuerst den Rabattbetrag, dann den Zahlbetrag und am Ende die Summe.`;
+  }
+
+  if (task.type === "preisberechnung") {
+    return `❌ Rechne je Menge: Gesamtpreis → Rabattbetrag → Zahlbetrag → Stückpreis.`;
+  }
+
+  if (task.type === "bezugskalkulation") {
+    return `❌ Reihenfolge: Listenpreis → Rabatt → Zieleinkaufspreis → Skonto → Bareinkaufspreis → Bezugskosten.`;
+  }
+
+  if (task.type === "verkaufskalkulation") {
+    return `❌ Arbeite Schritt für Schritt: Rabatt → Skonto → Bezugspreis → Handlungskosten → Selbstkosten → Gewinn → MwSt.`;
+  }
+
+  if (task.type === "umweltschutz") {
+    return `❌ Rechne zuerst pro Tag, dann pro Monat, dann pro Jahr.`;
+  }
+
+  if (task.type === "marketing_vormonat") {
+    return `❌ Der aktuelle Monat entspricht 100 % + Steigerung. Rechne dann rückwärts.`;
+  }
+
+  if (task.type === "marketing_umsatz") {
+    return `❌ Nutze: Kundenzahl × Umsatz pro Kunde.`;
+  }
   return `❌ Noch nicht richtig. Dein Ergebnis ist ${formatNumber(inputValue)}.`;
 }
 
@@ -830,6 +1325,7 @@ function buildSolutionText(task) {
   if (!steps.length) return "Für diese Aufgabe ist noch keine Musterlösung hinterlegt.";
 
   const resultLines = [];
+
   if (task.type === "anteile") {
     resultLines.push(
       `${task.part1} Teile = ${formatNumber(steps[2].expected)} ml`,
@@ -855,6 +1351,47 @@ function buildSolutionText(task) {
   } else if (task.type === "prozent_konzentration") {
     resultLines.push(
       `Konzentration: ${formatNumber(steps[1].expected)} %`
+    );
+  } else if (task.type === "deckungsbeitrag") {
+    resultLines.push(
+      `Deckungsbeitrag: ${formatNumber(steps[0].expected)} €`
+    );
+  } else if (task.type === "wareneinsatzquote") {
+    resultLines.push(
+      `Wareneinsatzquote: ${formatNumber(steps[0].expected)} %`
+    );
+  } else if (task.type === "warenrabatt") {
+    resultLines.push(
+      `Gesamtbetrag: ${formatNumber(steps[4].expected)} €`
+    );
+  } else if (task.type === "preisberechnung") {
+    resultLines.push(
+      `Zahlbetrag bei ${task.menge1} Stück: ${formatNumber(steps[2].expected)} €`,
+      `Stückpreis bei ${task.menge1} Stück: ${formatNumber(steps[3].expected)} €`,
+      `Zahlbetrag bei ${task.menge2} Stück: ${formatNumber(steps[6].expected)} €`,
+      `Stückpreis bei ${task.menge2} Stück: ${formatNumber(steps[7].expected)} €`
+    );
+  } else if (task.type === "bezugskalkulation") {
+    resultLines.push(
+      `Gesamtbezugspreis: ${formatNumber(steps[5].expected)} €`,
+      `Bezugspreis je Stück: ${formatNumber(steps[6].expected)} €`
+    );
+  } else if (task.type === "verkaufskalkulation") {
+    resultLines.push(
+      `Bruttoverkaufspreis: ${formatNumber(steps[10].expected)} €`
+    );
+  } else if (task.type === "umweltschutz") {
+    resultLines.push(
+      `Farbverlust pro Monat: ${formatNumber(steps[1].expected)} ml`,
+      `Farbverlust pro Jahr: ${formatNumber(steps[2].expected)} ml`
+    );
+  } else if (task.type === "marketing_vormonat") {
+    resultLines.push(
+      `Kundenzahl im Vormonat: ${formatNumber(steps[1].expected)}`
+    );
+  } else if (task.type === "marketing_umsatz") {
+    resultLines.push(
+      `Gesamtumsatz: ${formatNumber(steps[0].expected)} €`
     );
   }
 
@@ -898,7 +1435,21 @@ async function initTasks() {
   const data = await response.json();
   TASK_DATA = data;
 
-  const allowedCategories = ["anteile", "mixing", "concentration", "prozent"];
+  const allowedCategories = [
+  "anteile",
+  "mixing",
+  "concentration",
+  "prozent",
+  "deckungsbeitrag",
+  "wareneinsatzquote",
+  "warenrabatt",
+  "preisberechnung",
+  "bezugskalkulation",
+  "verkaufskalkulation",
+  "umweltschutz",
+  "marketing",
+  "kalkulation"
+];
   const categories = Object.keys(data.exam_tasks || {}).filter((key) => allowedCategories.includes(key));
 
   taskCategory.innerHTML = "";
