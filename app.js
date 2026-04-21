@@ -69,9 +69,11 @@ function parseNum(value) {
   }
 
   if (normalized.includes(":")) {
-    throw new Error("Bitte hier einen Rechenausdruck eingeben, kein Verhältnis mit Doppelpunkt.");
+    throw new Error("Bitte keinen Doppelpunkt verwenden.");
   }
 
+  // 🔥 Prozent-Funktion aktivieren
+  // Beispiel: 20% → (20/100)
   normalized = normalized.replace(/(\d+(\.\d+)?)%/g, "($1/100)");
 
   let result;
@@ -81,7 +83,7 @@ function parseNum(value) {
     throw new Error("Ungültiger Rechenausdruck.");
   }
 
-  if (typeof result !== "number" || Number.isNaN(result) || !Number.isFinite(result)) {
+  if (typeof result !== "number" || !isFinite(result)) {
     throw new Error("Ungültiger Rechenausdruck.");
   }
 
