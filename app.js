@@ -54,7 +54,7 @@ let activePathInput = null;
 // HELPERS
 // =====================
 function parseNum(value) {
-  const normalized = String(value ?? "")
+  let normalized = String(value ?? "")
     .trim()
     .replace(/,/g, ".")
     .replace(/×/g, "*")
@@ -64,13 +64,15 @@ function parseNum(value) {
     throw new Error("Bitte eine Eingabe machen.");
   }
 
-  if (!/^[0-9+\-*/().:\s]+$/.test(normalized)) {
+  if (!/^[0-9+\-*/().:%\s]+$/.test(normalized)) {
     throw new Error("Ungültige Eingabe.");
   }
 
   if (normalized.includes(":")) {
     throw new Error("Bitte hier einen Rechenausdruck eingeben, kein Verhältnis mit Doppelpunkt.");
   }
+
+  normalized = normalized.replace(/(\d+(\.\d+)?)%/g, "($1/100)");
 
   let result;
   try {
@@ -111,7 +113,8 @@ function formatCategoryName(key) {
   const map = {
     anteile: "Anteile",
     mixing: "Mischung",
-    concentration: "Konzentration"
+    concentration: "Konzentration",
+    prozent: "Prozent"
   };
   return map[key] || key;
 }
@@ -230,8 +233,8 @@ function buildSteps(task) {
     return [
       {
         label: "Teile addieren",
-        question: "Wie viele Teile sind es insgesamt?",
-        prompt: "Bilde die Summe der Verhältnis-Zahlen (Teile 1 + Teile 2).",
+        question: "Wie viele Teile insgesamt?",
+        prompt: "Addiere die Verhältnis-Zahlen.",
         placeholder: `${task.part1}+${task.part2}`,
         expected: totalParts,
         hint: `${task.part1} + ${task.part2}`,
@@ -240,7 +243,7 @@ function buildSteps(task) {
       {
         label: "1 Teil berechnen",
         question: "Wie viel ml entspricht 1 Teil?",
-        prompt: "Teile die Gesamtmenge durch die Summe der Teile.",
+        prompt: "Teile die Gesamtmenge durch die Gesamtteile.",
         placeholder: `${task.total_ml}/${totalParts}`,
         expected: onePart,
         hint: `${task.total_ml} / ${totalParts}`,
@@ -249,7 +252,7 @@ function buildSteps(task) {
       {
         label: `${task.part1} Teile berechnen`,
         question: `Wie viel ml sind ${task.part1} Teile?`,
-        prompt: "Multipliziere die Zahl der Teile mit dem Wert eines Teils.",
+        prompt: "Multipliziere die Teilezahl mit dem Wert eines Teils.",
         placeholder: `${task.part1}×${formatNumber(onePart)}`,
         expected: onePart * task.part1,
         hint: `${task.part1} × ${formatNumber(onePart)}`,
@@ -258,7 +261,7 @@ function buildSteps(task) {
       {
         label: `${task.part2} Teile berechnen`,
         question: `Wie viel ml sind ${task.part2} Teile?`,
-        prompt: "Multipliziere die Zahl der Teile mit dem Wert eines Teils.",
+        prompt: "Multipliziere die Teilezahl mit dem Wert eines Teils.",
         placeholder: `${task.part2}×${formatNumber(onePart)}`,
         expected: onePart * task.part2,
         hint: `${task.part2} × ${formatNumber(onePart)}`,
@@ -279,7 +282,7 @@ function buildSteps(task) {
       {
         label: "Starke Lösung minus Ziel",
         question: "Wie viel ist starke Lösung minus Zielkonzentration?",
-        prompt: "Stark minus Ziel",
+        prompt: "Berechne zuerst die obere Differenz im Mischkreuz.",
         placeholder: `${task.high}-${task.target}`,
         expected: diffStrong,
         hint: `${task.high} - ${task.target}`,
@@ -288,7 +291,7 @@ function buildSteps(task) {
       {
         label: "Ziel minus schwache Lösung",
         question: "Wie viel ist Zielkonzentration minus schwache Lösung?",
-        prompt: "Ziel minus Schwach",
+        prompt: "Berechne jetzt die untere Differenz im Mischkreuz.",
         placeholder: `${task.target}-${task.low}`,
         expected: diffWeak,
         hint: `${task.target} - ${task.low}`,
@@ -297,7 +300,7 @@ function buildSteps(task) {
       {
         label: "Anteil starke Lösung",
         question: "Wie groß ist der Anteil der starken Lösung?",
-        prompt: "KREUZEN: Zahl von Schwach: Anteil der starken Lösung ist ZIEL minus SCHWACH",
+        prompt: "Der Anteil der starken Lösung entspricht der gegenüberliegenden Differenz.",
         placeholder: `${diffWeak}`,
         expected: diffWeak,
         hint: `Anteil stark = ${diffWeak}`,
@@ -306,7 +309,7 @@ function buildSteps(task) {
       {
         label: "Anteil schwache Lösung",
         question: "Wie groß ist der Anteil der schwachen Lösung?",
-        prompt: "KREUZEN: Zahl von Stark: Anteil der schwachen Lösung ist STARK minus ZIEL",
+        prompt: "Der Anteil der schwachen Lösung entspricht der gegenüberliegenden Differenz.",
         placeholder: `${diffStrong}`,
         expected: diffStrong,
         hint: `Anteil schwach = ${diffStrong}`,
@@ -315,7 +318,7 @@ function buildSteps(task) {
       {
         label: "Gesamtteile",
         question: "Wie viele Teile insgesamt?",
-        prompt: "Summe beider Anteile: Anteile STARK + Anteile SCHWACH.",
+        prompt: "Addiere beide Anteile.",
         placeholder: `${diffWeak}+${diffStrong}`,
         expected: totalParts,
         hint: `${diffWeak} + ${diffStrong}`,
@@ -324,7 +327,7 @@ function buildSteps(task) {
       {
         label: "1 Teil in ml",
         question: "Wie viel ml entspricht 1 Teil?",
-        prompt: "Teile die Gesamtmenge durch die Summe von Anteile STARK + Anteile SCHWACH.",
+        prompt: "Teile die Gesamtmenge durch die Gesamtteile.",
         placeholder: `${task.total_ml}/${totalParts}`,
         expected: onePart,
         hint: `${task.total_ml} / ${totalParts}`,
@@ -333,7 +336,7 @@ function buildSteps(task) {
       {
         label: "Starke Lösung in ml",
         question: "Wie viel ml starke Lösung werden benötigt?",
-        prompt: "Anteil starke Lösung × ml eines Teils der Gesamtmenge.",
+        prompt: "Anteil starke Lösung × Wert eines Teils.",
         placeholder: `${diffWeak}×${formatNumber(onePart)}`,
         expected: strongMl,
         hint: `${diffWeak} × ${formatNumber(onePart)}`,
@@ -342,7 +345,7 @@ function buildSteps(task) {
       {
         label: "Schwache Lösung in ml",
         question: "Wie viel ml schwache Lösung werden benötigt?",
-        prompt: "Anteil schwache Lösung × ml eines Teils der Gesamtmenge.",
+        prompt: "Anteil schwache Lösung × Wert eines Teils.",
         placeholder: `${diffStrong}×${formatNumber(onePart)}`,
         expected: weakMl,
         hint: `${diffStrong} × ${formatNumber(onePart)}`,
@@ -381,7 +384,7 @@ function buildSteps(task) {
         prompt: "Kürze das Verhältnis der Anteile.",
         placeholder: `${ratioStrong}`,
         expected: ratioStrong,
-        hint: `${diffWeak} : ${diffStrong} → stark = ${ratioStrong}`,
+        hint: `stark = ${ratioStrong}`,
         resultText: formatNumber(ratioStrong)
       },
       {
@@ -390,7 +393,7 @@ function buildSteps(task) {
         prompt: "Kürze das Verhältnis der Anteile.",
         placeholder: `${ratioWeak}`,
         expected: ratioWeak,
-        hint: `${diffWeak} : ${diffStrong} → schwach = ${ratioWeak}`,
+        hint: `schwach = ${ratioWeak}`,
         resultText: formatNumber(ratioWeak)
       }
     ];
@@ -414,7 +417,7 @@ function buildSteps(task) {
       {
         label: "Gesamtmenge",
         question: "Wie groß ist die Gesamtmenge in ml?",
-        prompt: "Bilde die Summe von Entwickler, Wasser und Zusatzmenge.",
+        prompt: "Addiere Entwickler, Wasser und Zusatzmenge.",
         placeholder: `${task.strong_ml}+${task.water_ml}+${task.extra_ml}`,
         expected: total,
         hint: `${task.strong_ml} + ${task.water_ml} + ${task.extra_ml}`,
@@ -428,6 +431,74 @@ function buildSteps(task) {
         expected: resultPct,
         hint: `${formatNumber(active)} / ${total} × 100`,
         resultText: `${formatNumber(resultPct)} %`
+      }
+    ];
+  }
+
+  if (task.type === "prozent_anteil") {
+    const anteilMl = task.gesamt_ml * task.prozent / 100;
+
+    return [
+      {
+        label: "Gesucht erkennen",
+        question: "Was ist gesucht: ml oder %?",
+        prompt: "Hier ist eine Menge in ml gesucht.",
+        placeholder: `${task.gesamt_ml}×${task.prozent}/100`,
+        expected: anteilMl,
+        hint: `ml gesucht`,
+        resultText: `${formatNumber(anteilMl)} ml`
+      },
+      {
+        label: "Prozent von der Gesamtmenge berechnen",
+        question: "Wie viel ml sind die angegebenen Prozent von der Gesamtmenge?",
+        prompt: "Rechne: Gesamtmenge × Prozent / 100.",
+        placeholder: `${task.gesamt_ml}×${task.prozent}/100`,
+        expected: anteilMl,
+        hint: `${task.gesamt_ml} × ${task.prozent} / 100`,
+        resultText: `${formatNumber(anteilMl)} ml`
+      },
+      {
+        label: "Ergebnis in ml angeben",
+        question: "Wie lautet das Ergebnis in ml?",
+        prompt: "Notiere die berechnete Wirkstoffmenge.",
+        placeholder: `${formatNumber(anteilMl)}`,
+        expected: anteilMl,
+        hint: `Ergebnis = ${formatNumber(anteilMl)} ml`,
+        resultText: `${formatNumber(anteilMl)} ml`
+      }
+    ];
+  }
+
+  if (task.type === "prozent_konzentration") {
+    const prozent = (task.anteil_ml / task.gesamt_ml) * 100;
+
+    return [
+      {
+        label: "Gesucht erkennen",
+        question: "Was ist gesucht: ml oder %?",
+        prompt: "Hier ist ein Prozentsatz gesucht.",
+        placeholder: `${task.anteil_ml}/${task.gesamt_ml}×100`,
+        expected: prozent,
+        hint: `% gesucht`,
+        resultText: `${formatNumber(prozent)} %`
+      },
+      {
+        label: "Anteil durch Gesamtmenge teilen",
+        question: "Wie groß ist der Anteil an der Gesamtmenge?",
+        prompt: "Teile zuerst Anteil durch Gesamtmenge.",
+        placeholder: `${task.anteil_ml}/${task.gesamt_ml}×100`,
+        expected: prozent,
+        hint: `${task.anteil_ml} / ${task.gesamt_ml} × 100`,
+        resultText: `${formatNumber(prozent)} %`
+      },
+      {
+        label: "Ergebnis in % angeben",
+        question: "Wie lautet das Ergebnis in Prozent?",
+        prompt: "Notiere die berechnete Konzentration.",
+        placeholder: `${formatNumber(prozent)}`,
+        expected: prozent,
+        hint: `Ergebnis = ${formatNumber(prozent)} %`,
+        resultText: `${formatNumber(prozent)} %`
       }
     ];
   }
@@ -455,73 +526,33 @@ function getSmartErrorFeedback(task, stepIndex, inputValue) {
     const totalParts = task.part1 + task.part2;
     const onePart = task.total_ml / totalParts;
 
-    if (stepIndex === 0) {
-      return `❌ Addiere nur die Verhältnis-Zahlen ${task.part1} und ${task.part2}.`;
-    }
-
-    if (stepIndex === 1) {
-      if (nearlyEqual(inputValue, task.total_ml * totalParts)) {
-        return `❌ Du hast wahrscheinlich multipliziert statt geteilt. Teile ${task.total_ml} durch ${totalParts}.`;
-      }
-      if (nearlyEqual(inputValue, task.total_ml / task.part1) || nearlyEqual(inputValue, task.total_ml / task.part2)) {
-        return `❌ Du musst durch die Gesamtteile teilen, nicht nur durch einen Anteil.`;
-      }
-      return `❌ Noch nicht richtig. Für 1 Teil rechnest du ${task.total_ml} / ${totalParts}.`;
-    }
-
-    if (stepIndex === 2) {
-      if (nearlyEqual(inputValue, onePart + task.part1)) {
-        return `❌ Hier musst du multiplizieren, nicht addieren. Rechne ${task.part1} × ${formatNumber(onePart)}.`;
-      }
-      if (nearlyEqual(inputValue, task.part2 * onePart)) {
-        return `❌ Das ist der andere Anteil. Hier wird der erste Anteil mit ${task.part1} Teilen gesucht.`;
-      }
-      return `❌ Noch nicht richtig. Rechne ${task.part1} × ${formatNumber(onePart)}.`;
-    }
-
-    if (stepIndex === 3) {
-      if (nearlyEqual(inputValue, onePart + task.part2)) {
-        return `❌ Hier musst du multiplizieren, nicht addieren. Rechne ${task.part2} × ${formatNumber(onePart)}.`;
-      }
-      if (nearlyEqual(inputValue, task.part1 * onePart)) {
-        return `❌ Das ist der andere Anteil. Hier wird der zweite Anteil mit ${task.part2} Teilen gesucht.`;
-      }
-      return `❌ Noch nicht richtig. Rechne ${task.part2} × ${formatNumber(onePart)}.`;
-    }
+    if (stepIndex === 0) return `❌ Addiere nur die Verhältnis-Zahlen ${task.part1} und ${task.part2}.`;
+    if (stepIndex === 1) return `❌ Für 1 Teil rechnest du ${task.total_ml} / ${totalParts}.`;
+    if (stepIndex === 2) return `❌ Rechne ${task.part1} × ${formatNumber(onePart)}.`;
+    if (stepIndex === 3) return `❌ Rechne ${task.part2} × ${formatNumber(onePart)}.`;
   }
 
   if (task.type === "mixing") {
-    if (stepIndex === 0) {
-      return `❌ Oben im Mischkreuz rechnest du starke Lösung minus Zielkonzentration.`;
-    }
-    if (stepIndex === 1) {
-      return `❌ Unten im Mischkreuz rechnest du Zielkonzentration minus schwache Lösung.`;
-    }
-    if (stepIndex === 2 || stepIndex === 3) {
-      return `❌ Die Anteile werden aus den gegenüberliegenden Differenzen übernommen.`;
-    }
-    if (stepIndex === 4) {
-      return `❌ Addiere beide Anteile zu den Gesamtteilen.`;
-    }
-    if (stepIndex === 5) {
-      return `❌ Teile die Gesamtmenge durch die Gesamtteile.`;
-    }
-    if (stepIndex === 6 || stepIndex === 7) {
-      return `❌ Jetzt musst du den Anteil mit dem ml-Wert eines Teils multiplizieren.`;
-    }
-    return `❌ Noch nicht richtig. Prüfe die Differenzen im Mischkreuz und die Gesamtteile.`;
+    if (stepIndex === 0) return `❌ Oben im Mischkreuz rechnest du starke Lösung minus Zielkonzentration.`;
+    if (stepIndex === 1) return `❌ Unten im Mischkreuz rechnest du Zielkonzentration minus schwache Lösung.`;
+    if (stepIndex === 2 || stepIndex === 3) return `❌ Die Anteile werden aus den gegenüberliegenden Differenzen übernommen.`;
+    if (stepIndex === 4) return `❌ Addiere beide Anteile zu den Gesamtteilen.`;
+    if (stepIndex === 5) return `❌ Teile die Gesamtmenge durch die Gesamtteile.`;
+    if (stepIndex === 6 || stepIndex === 7) return `❌ Jetzt musst du den Anteil mit dem ml-Wert eines Teils multiplizieren.`;
   }
 
   if (task.type === "concentration") {
-    if (stepIndex === 0) {
-      return `❌ Berechne zuerst nur die Wirkstoffmenge im Entwickler: ml × Prozent / 100.`;
-    }
-    if (stepIndex === 1) {
-      return `❌ Zur Gesamtmenge gehören Entwickler, Wasser und Farbcreme.`;
-    }
-    if (stepIndex === 2) {
-      return `❌ Endkonzentration = Wirkstoffmenge / Gesamtmenge × 100.`;
-    }
+    if (stepIndex === 0) return `❌ Berechne zuerst nur die Wirkstoffmenge: ml × Prozent / 100.`;
+    if (stepIndex === 1) return `❌ Zur Gesamtmenge gehören Entwickler, Wasser und Farbcreme.`;
+    if (stepIndex === 2) return `❌ Endkonzentration = Wirkstoffmenge / Gesamtmenge × 100.`;
+  }
+
+  if (task.type === "prozent_anteil") {
+    return `❌ Hier ist eine Menge in ml gesucht. Rechne Gesamtmenge × Prozent / 100.`;
+  }
+
+  if (task.type === "prozent_konzentration") {
+    return `❌ Hier ist ein Prozentsatz gesucht. Rechne Anteil / Gesamtmenge × 100.`;
   }
 
   return `❌ Noch nicht richtig. Dein Ergebnis ist ${formatNumber(inputValue)}.`;
@@ -553,10 +584,6 @@ function clearClassicManualFields() {
 
   if (checkManualBtn) checkManualBtn.classList.add("hidden");
 }
-//Damit werden Lösungsvorschläge beim Laden sichtbar dargestellt.
-//placeholder="${step.placeholder || ""}"
-//damit werden sie ausgeblendet
-//placeholder=""
 
 function renderPathSteps() {
   const task = getCurrentTask();
@@ -596,8 +623,7 @@ function renderPathSteps() {
           type="text"
           inputmode="text"
           autocomplete="off"
-          placeholder=""
-          
+          placeholder="${step.placeholder || ""}"
           value="${step.userInput || ""}"
           ${!step.unlocked || step.solved ? "disabled" : ""}
         />
@@ -660,6 +686,10 @@ function checkPathStep(index) {
     if (nearlyEqual(inputValue, step.expected)) {
       step.solved = true;
       step.feedback = `✅ Richtig: ${step.userInput} = ${formatNumber(inputValue)}`;
+
+      if (step.userInput.includes("%")) {
+        step.feedback += ` • 💡 % bedeutet /100`;
+      }
 
       const nextStep = currentSteps[index + 1];
       if (nextStep) nextStep.unlocked = true;
@@ -750,6 +780,9 @@ function checkCurrentStep() {
       step.userInput = stepInput.value;
       step.solved = true;
       stepFeedback.textContent = `✅ Richtig: ${formatNumber(input)}`;
+      if (stepInput.value.includes("%")) {
+        stepFeedback.textContent += ` • 💡 % bedeutet /100`;
+      }
     } else {
       stepFeedback.textContent = getSmartErrorFeedback(getCurrentTask(), currentStepIndex, input);
     }
@@ -815,18 +848,25 @@ function buildSolutionText(task) {
     resultLines.push(
       `Endkonzentration: ${formatNumber(steps[2].expected)} %`
     );
+  } else if (task.type === "prozent_anteil") {
+    resultLines.push(
+      `Anteil in ml: ${formatNumber(steps[1].expected)} ml`
+    );
+  } else if (task.type === "prozent_konzentration") {
+    resultLines.push(
+      `Konzentration: ${formatNumber(steps[1].expected)} %`
+    );
   }
 
   const pathLines = steps.map((step, index) => {
-      const hint = step.hint || "";
-      const result = step.resultText || "";
+    const hint = step.hint || "";
+    const result = step.resultText || "";
 
-      // Wenn im Hint schon ein "=" vorkommt → nicht nochmal anhängen
-      if (hint.includes("=")) {
-        return `${index + 1}. ${step.label}: ${hint}`;
-      }
+    if (hint.includes("=")) {
+      return `${index + 1}. ${step.label}: ${hint}`;
+    }
 
-      return `${index + 1}. ${step.label}: ${hint} = ${result}`;
+    return `${index + 1}. ${step.label}: ${hint} = ${result}`;
   });
 
   return [
@@ -858,7 +898,7 @@ async function initTasks() {
   const data = await response.json();
   TASK_DATA = data;
 
-  const allowedCategories = ["anteile", "mixing", "concentration"];
+  const allowedCategories = ["anteile", "mixing", "concentration", "prozent"];
   const categories = Object.keys(data.exam_tasks || {}).filter((key) => allowedCategories.includes(key));
 
   taskCategory.innerHTML = "";

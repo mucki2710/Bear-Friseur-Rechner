@@ -1,6 +1,40 @@
 {
   
   "exam_tasks": {
+    "prozent": [
+  {
+    "type": "prozent_anteil",
+    "title": "Wirkstoffmenge in ml aus 30 ml und 9 %",
+    "description": "Ein Entwickler hat eine Gesamtmenge von 30 ml und eine Konzentration von 9 %. Berechne die enthaltene Wirkstoffmenge in ml.",
+    "prompt": "Gesucht ist der Anteil in ml. Rechne: Gesamtmenge × Prozent / 100.",
+    "gesamt_ml": 30,
+    "prozent": 9
+  },
+  {
+    "type": "prozent_anteil",
+    "title": "Wirkstoffmenge in ml aus 40 ml und 6 %",
+    "description": "Eine Mischung hat eine Gesamtmenge von 40 ml und eine Konzentration von 6 %. Berechne die Wirkstoffmenge in ml.",
+    "prompt": "Gesucht ist der Anteil in ml. Rechne mit Prozent von einer Gesamtmenge.",
+    "gesamt_ml": 40,
+    "prozent": 6
+  },
+  {
+    "type": "prozent_konzentration",
+    "title": "Konzentration aus 2,7 ml von 60 ml",
+    "description": "In einer Gesamtmischung von 60 ml sind 2,7 ml Wirkstoff enthalten. Berechne die Konzentration in Prozent.",
+    "prompt": "Gesucht ist die Konzentration in %. Rechne: Anteil / Gesamtmenge × 100.",
+    "anteil_ml": 2.7,
+    "gesamt_ml": 60
+  },
+  {
+    "type": "prozent_konzentration",
+    "title": "Konzentration aus 3 ml von 50 ml",
+    "description": "In einer Gesamtmischung von 50 ml sind 3 ml Wirkstoff enthalten. Berechne die Konzentration in Prozent.",
+    "prompt": "Gesucht ist die Konzentration in %. Teile zuerst durch die Gesamtmenge und multipliziere dann mit 100.",
+    "anteil_ml": 3,
+    "gesamt_ml": 50
+  }
+],
     "anteile": [
   {
   "type": "anteile",
